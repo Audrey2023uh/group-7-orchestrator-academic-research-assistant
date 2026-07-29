@@ -1,0 +1,1456 @@
+--- PAGE 1 ---
+Semantic Tracing in LLM-Based Multi-Agent
+Systems Using LangChain, LangGraph, and
+LangSmith for AI Governance
+Audrey Rahimi?
+University of Houston https://orcid.org/0000-0001-7501-7809
+Research Article
+Keywords: LLM-based multi-agent systems, agentic AI, LangChain, LangGraph, LangSmith, semantic
+tracing, AI governance, multi-agent communication, observability, instruction drift, hallucination,
+cybersecurity, Shadow AI, NIST AI RMF
+Posted Date: July 28th, 2026
+DOI: https://doi.org/10.21203/rs.3.rs-10485157/v1
+License: ? ? This work is licensed under a Creative Commons Attribution 4.0 International License. ?
+Read Full License
+Additional Declarations: The authors declare no competing interests.
+
+--- PAGE 2 ---
+Article
+Semantic T racing in LLM-Based Multi-Agent Systems Using
+LangChain, LangGraph, and LangSmith for AI Governance
+Audrey Rah 1
+1 Department of Electrical and Computer Engineering, University of Houston, Houston, TX 77204, USA
+* Correspondence: arahimi@uh.edu
+Abstract 1
+Autonomous multi-agent systems built on large language models exchange goals, con- 2
+straints, evidence commitments, and tool-mediated actions through natural-language 3
+handoffs. Across hops, semantic meaning may drift, constraints may weaken, unsupported 4
+claims may propagate, and organizations may lose visibility into how decisions were pro- 5
+duced. This paper develops a semantic-tracing framework that treats meaning preservation 6
+as a ?rst-class measurand and operationalizes it with three LangChain ecosystem compo- 7
+nents that are genuinely used in the local experimental artifact: LangChain for LLM invoca- 8
+tion, prompt templates, tool interfaces, structured-output parsing, and retries; LangGraph 9
+for stateful multi-agent orchestration (nodes, edges, work?ow state, routing, and human- 10
+review control); and LangSmith for private tracing, span capture, metadata, and evaluation- 11
+linked observability . The system separates framework orchestration, LLM reasoning, deter- 12
+ministic safeguards, trace capture, semantic evaluation, and human decision. The frame- 13
+work is anchored in SHADOWAI-RISK, a live academic research prototype for enterprise AI 14
+governance and risk intelligence. In addition to the live prototype, this study implements a 15
+separate local experimental extension with (i) a preserved deterministic baseline pathway 16
+and (ii) a genuine LLM multi-agent condition (Inventory ? Evidence ? Governance ? 17
+Human Review Gate) implemented with LangChain ( ChatOpenAI, ChatPromptTemplate, 18
+JsonOutputParser, tool wrappers, retries), LangGraph ( StateGraph nodes/edges/state), 19
+optional private LangSmith instrumentation, and a rule-based semantic evaluation layer. 20
+The full experimental matrix is complete at 450/450 ( complete:true; deterministic 32, 21
+llm_no_eval 160, llm_langsmith_semantic_eval 160, variability 50, ablations 48), with 0 22
+terminal failures. Primary eval versus no-eval contrasts ( n=160 each) show Holm-corrected 23
+Mann?Whitney effects including lower TCS with evaluation (0.624 vs. 0.912, Holm-adjusted 24
+p < 0.001, Cliff ? ? ? 0.33 medium), signi?cantly lower WRS_equal and WRS_expert (small 25
+effects), non-signi?cant SPS/AHF/IDR/TUA/GCR/HPR/HEP , higher latency with evalu- 26
+ation (? 126.2 s vs. ? 101.7 s, Cliff ? ? 0.67 large), non-signi?cant token usage, and $0 local 27
+cost; decision-family correctness did not differ (59/160 vs. 57/160; Fisher/ ? 2 n.s.). Human 28
+calibration, inter-rater agreement, surveys, and production integration remain pending. 29
+Keywords: LLM-based multi-agent systems; agentic AI; LangChain; LangGraph; Lang- 30
+Smith; semantic tracing; AI governance; multi-agent communication; observability; instruc- 31
+tion drift; hallucination; cybersecurity; Shadow AI; NIST AI RMF 32
+Case-study software artifact: SHADOWAI-RISK ( https:// shadowai-risk.vercel.app/) 33
+
+--- PAGE 3 ---
+2 of 37
+1. Introduction 34
+Organizations are currently negotiating whether and how to adopt AI under conditions 35
+of cybersecurity exposure, privacy risk, hallucination, accountability gaps, unauthorized 36
+AI use (Shadow AI), and potential loss of managerial control. Professional and regulatory 37
+institutions?including NIST, ISACA, European institutions, ENISA, and the OECD?are 38
+shaping expectations for trustworthy AI and organizational oversight [ 1? 4]. 39
+At the same time, LLM-based systems are moving from single-agent assistants toward 40
+multi-agent work?ows in which specialized agents plan, retrieve evidence, invoke tools, 41
+critique outputs, and hand work to other agents [ 5? 8]. Classical multi-agent theory empha- 42
+sized autonomy and coordinated interaction [ 9]. In LLM systems, coordination is mediated 43
+by natural-language messages whose meaning is brittle [ 10,11]. 44
+Observability platforms such as LangSmith capture end-to-end execution traces [ 12]. 45
+AgentOps research likewise argues that lifecycle observability supports safer agent opera- 46
+tion [13]. Tracing alone, however, does not answer the governance question that matters in 47
+enterprise settings: whether agents preserved the meaning of what they were asked to do, 48
+under which constraints, on which evidence, and with what residual risk. 49
+This paper addresses that problem by de?ning semantic tracing and binding it to 50
+enterprise AI risk work?ows. Figure 1 summarizes the end-to-end research logic. 51
+Figure 1. End-to-end research logic from organizational risk context through multi-agent work?ow,
+LangSmith trace capture, semantic metrics, and governance decision.
+2. Research Motivation and Gap 52
+2.1 Motivation 53
+Enterprise AI adoption debates require decisions to permit, restrict, stage, or contin- 54
+uously monitor AI tools. Shadow AI creates a visibility problem when AI-enabled work 55
+occurs outside approved inventories and logging regimes [14,15]. ENISA?s threat-landscape 56
+work positions AI as a material cybersecurity concern. 57
+The NIST AI Risk Management Framework organizes trustworthy AI management 58
+around Govern, Map, Measure, and Manage [ 1]. The NIST Generative AI Pro?le highlights 59
+risks such as confabulation and misuse [ 16]. The EU Arti?cial Intelligence Act establishes 60
+
+--- PAGE 4 ---
+3 of 37
+risk-based obligations and human-oversight expectations [ 2,17]. ISACA materials empha- 61
+size lifecycle governance and assurance [ 18,19]. These sources motivate systems that can 62
+show what agents did, what they communicated, and where controls should intervene. 63
+SHADOWAI-RISK operationalizes part of this motivation as a live academic research 64
+prototype that connects an AI inventory to authoritative vulnerability intelligence and 65
+an executive decision pathway [ 20]. Semantic tracing is motivated as the complementary 66
+capability for dynamic observation of agent-mediated decision processes. 67
+2.2 Research gap 68
+Related work provides building blocks but leaves a gap at the intersection of semantic 69
+communication ?delity , tracing infrastructure, and enterprise governance decision support 70
+[13,21]. 71
+Table 1 synthesizes the research gap against major related-work strands. 72
+T able 1.Research-gap synthesis against major related-work strands.
+Strand What it covers Unresolved for this study
+LLM multi-agent surveys Communication patterns,
+work?ows, challenges
+Governance metricization
+of semantic drift
+Agent surveys Architecture, tools,
+evaluation overview
+Enterprise control mapping
+and handoff ?delity
+Hallucination surveys Unsupported generation
+measurement/mitigation
+Propagation across agent
+hops
+AgentOps / LangSmith Observability artifacts and
+tracing
+Semantic preservation
+scoring for governance
+NIST/ISACA/EU/ENISA Risk, assurance, regulatory
+expectations
+Operational multi-agent
+semantic tracing method
+The gap is therefore precise: there is no integrated, reproducible framework that (i) 73
+treats meaning preservation across multi-agent hops as a ?rst-class measurand, (ii) binds 74
+those measurements to LangSmith-style traces, (iii) maps metric failures to governance 75
+controls, and (iv) demonstrates the approach in an enterprise AI risk application context 76
+while separating implemented features from proposed architecture. 77
+3. Research Questions and Contributions 78
+Table 2 presents the research questions. 79
+Contributions are summarized in Figure 29 and linked to gap, method, output, and 80
+validation status. 81
+The study contributes: (C1) a conceptual semantic-tracing construct and handoff- 82
+packet representation; (C2) a LangSmith-centered observability pipeline and formal metric 83
+suite (pending human calibration on annotated corpora); (C3) a working local multi-agent 84
+experimental prototype with Inventory , Evidence, and Governance agents plus a Human 85
+Review Gate; (C4) genuine LangChain-based LLM invocation with prompt templates, tool 86
+interfaces, structured-output parsing, and retries; (C5) genuine LangGraph orchestration 87
+with stateful nodes/edges, routing, and mandatory human-review control; (C6) an explicit 88
+separation of orchestration, LLM reasoning, deterministic safeguards, LangSmith trace 89
+capture, semantic evaluation, and human decision; (C7) a baseline-versus-experimental 90
+comparison against the unchanged SHADOWAI-RISK prototype; and (C8) an interpretive 91
+governance-control mapping. No claim is made that semantic preservation effectiveness 92
+has been proven in production; the computational matrix is complete (450/450), while 93
+human calibration on annotated corpora remains pending. 94
+
+--- PAGE 5 ---
+4 of 37
+T able 2.Research questions.
+ID Research question
+RQ1
+How can semantic meaning, constraints,
+and evidence commitments be represented
+across agent-to-agent handoffs?
+RQ2
+How can LangSmith traces be transformed
+into governance-relevant measures of
+preservation, drift, contradiction, and
+tool-use ?delity?
+RQ3
+Where do information loss, instruction
+drift, hallucination propagation, and failed
+handoffs threaten enterprise AI risk
+work?ows?
+RQ4
+How can SHADOWAI-RISK?s
+evidence-linked governance pathway be
+extended by semantic tracing without
+con?ating implemented and proposed
+capabilities?
+RQ5
+How should semantic-tracing signals map
+interpretively to NIST, ISACA, EU, ENISA,
+OECD, and IEEE oversight expectations?
+RQ6
+What evaluation protocol supports
+reproducible quantitative and qualitative
+assessment prior to, and after, empirical
+data collection?
+4. Related Work 95
+4.1 Multi-agent systems and LLM agents 96
+Wooldridge provides foundational agent concepts [ 9]. Recent surveys document 97
+LLM-based agents and multi-agent organizations with natural-language channels [ 5? 7,22]. 98
+Communication protocol design, role pro?ling, and evaluation remain open problems 99
+[8,21,23,24]. 100
+4.2 Hallucination and unreliable generation 101
+Ji et al. survey hallucination in natural language generation [ 25? 27]. In multi-agent 102
+settings the risk is compositional: an unsupported claim introduced by one agent can 103
+become an assumed premise for downstream agents [ 23,28,29]. This motivates an explicit 104
+Hallucination Propagation Rate. 105
+4.3 Observability and tracing 106
+LangSmith documentation describes traces as records of application steps for debug- 107
+ging, evaluation, and monitoring [ 12,30]. Xia et al. propose an AgentOps taxonomy of 108
+artifacts to trace across the agent lifecycle [ 13]. The present study uses these sources as 109
+infrastructure references and contributes semantic metrics and governance bindings that 110
+those sources do not de?ne. 111
+4.4 Governance, cybersecurity, and assurance 112
+Relevant instruments include NIST AI RMF 1.0 and the Generative AI Pro?le [ 1,16]; 113
+NIST CSF 2.0 [ 31]; the EU AI Act [ 2]; OECD AI Principles [ 3]; ENISA AI cybersecurity and 114
+threat-landscape reports [4,14]; ISACA AI governance and audit guidance [ 18,19,44]; IEEE 115
+7000-2021 [32]; ISO/IEC 42001 [ 33]; and ISO/IEC 23894 [ 50]. 116
+
+--- PAGE 6 ---
+5 of 37
+5. Semantic-T racing Framework and Experimental Implementation 117
+5.1 Semantic communication and handoff packets 118
+Semantic communication, for this study , is the transfer of task-relevant meaning? 119
+goals, constraints, evidence commitments, uncertainty , and permitted actions?between 120
+agents such that a downstream agent can act without violating sender intent or organiza- 121
+tional policy . Figure3 presents the handoff packet schema. 122
+Figure 2 presents the layered architecture and interfaces. Storage, policy checks, and 123
+human-review gates are ?rst-class components rather than afterthoughts [ 34]. 124
+Figure 2. Semantic-tracing architecture with interfaces among multi-agent runtime, LangSmith,
+semantic analysis, storage, policy checks, and human-review gates.
+The handoff packet is the unit of analysis (Figure 3) [ 11,23,35,51]. Required ?elds 125
+include goal identi?er and statement; constraint set; evidence identi?ers and sources; 126
+con?dence; permitted tools; residual risk; escalation state; and policy identi?er. Semantic 127
+failures include constraint deletion, unauthorized scope expansion, unsupported evidence 128
+claims, contradictory recommendations, incomplete tool results presented as complete, and 129
+silent suppression of escalation triggers. 130
+Figure 3. Agent-to-agent handoff packet schema with required ?elds used for ?delity and drift
+measurement.
+
+--- PAGE 7 ---
+6 of 37
+5.2 LangSmith-based tracing pipeline 131
+Figure 4 shows the pipeline: instrumentation, run/span capture, export, semantic 132
+parsing, metric calculation, and governance alert. Recommended metadata tags include 133
+agent_role, hop_index, policy_id, tool_name, evidence_source, and human_gate. 134
+Figure 4. LangSmith pipeline from instrumentation through capture, export, semantic parsing, metric
+calculation, and governance alerting.
+LangSmith provides trace capture for instrumented spans [ 12,36]; it does not automat- 135
+ically compute SPS or GCR. Those computations are study-speci?c services in the local 136
+experimental evaluation layer (implemented; calibration pending). 137
+5.3 Failure taxonomy 138
+Seven failure classes guide annotation and metric design [ 21]: (F1) constraint omission; 139
+(F2) scope expansion; (F3) evidence in?ation; (F4) tool mismatch; (F5) handoff incomplete- 140
+ness; (F6) contradiction between agents; and (F7) escalation suppression. These classes map 141
+onto IDR, HPR, TUA, AHF, and HEP . 142
+5.4 Experimental implementation 143
+The semantic-tracing framework has been partially operationalized in a separate local 144
+experimental project (C:\{}Users\{}audre\{}OneDrive\{}Langsmith\{}SHADOWAI-RISK- 145
+LangSmith-Experimental). The original SHADOWAI-RISK production website remains 146
+unchanged; the experimental extension was developed locally and did not modify the 147
+V ercel deployment. No GitHub or V ercel actions were performed for this extension. 148
+The experimental work?ow implements four agent roles along Inventory ? Evi- 149
+dence ? Governance ? Human Review under two executable conditions: (1) deter- 150
+ministic agents ( agents/*, workflow/run_workflow.py) preserved as baseline; and (2) 151
+genuine LLM agents ( llm_agents/*) invoked through LangChain and orchestrated by 152
+a LangGraph StateGraph (llm_agents/graph_langgraph.py). Handoffs are Pydantic- 153
+validated LLMHandoffPacket objects; evidence collection is exposed as LangChain tools 154
+(nvd_cve_lookup, evidence_fixture_loader); and LangSmith tracing is enabled through 155
+optional @traceable instrumentation when private credentials are present. 156
+Functional testing con?rms LangChain LLM calls, LangGraph orchestration, schema 157
+validation/repair, LangChain evidence tools, and optional private LangSmith spans. Im- 158
+plementation status (veri?ed in code and smoke-tested): deterministic baseline complete; 159
+genuine LLM multi-agent implementation complete; LangChain integration implemented; 160
+
+--- PAGE 8 ---
+7 of 37
+LangGraph orchestration implemented; LangSmith tracing implemented; full experimental 161
+matrix complete at 450/450 ( complete:true; 0 terminal failures). Aggregate numerical 162
+and inferential results from the completed matrix are reported in Sections 8?12; human 163
+calibration of metric weights remains pending. 164
+5.5 Framework roles and implementation evidence 165
+Table 3 states each framework component?s actual role with code evidence. Only 166
+packages that are installed and imported in the local experimental project are claimed as 167
+integrated. 168
+T able 3.Framework roles versus implementation evidence (packages genuinely used).
+Framework Actual role in the system Implementation evidence
+LangChain Real LLM invocation, prompt
+templates, tool interfaces,
+structured JSON output
+parsing, and retry/repair
+handling for each agent role.
+llm_agents/llm_client.py (ChatOpenAI,
+ChatPromptTemplate, JsonOutputParser,
+.with_retry, repair chain); llm_agents/prompts.py
+(langchain_role_prompt_template);
+llm_agents/tools_langchain.py (nvd_cve_lookup,
+evidence_fixture_loader); llm_agents/schema.py
+(LLMHandoffPacket); requirements.txt (langchain,
+langchain-core, langchain-openai).
+LangGraph Stateful multi-agent
+orchestration with work?ow
+state, nodes, edges, conditional
+routing, and mandatory
+human-review control.
+llm_agents/graph_langgraph.py (StateGraph,
+nodes: inventory , evidence, governance,
+human_review; edges
+inventory? evidence? governance? human_review? END;
+add_conditional_edges for human-review routing);
+llm_agents/workflow_llm.py
+(run_langgraph_workflow); requirements.txt
+(langgraph).
+LangSmith Private tracing, span capture,
+run metadata/tags, and trace
+URL resolution. Does not
+compute semantic metrics or
+make governance decisions.
+workflow/tracing.py (configure_langsmith,
+maybe_traceable, Client);
+llm_agents/workflow_llm.py (@traceable root
+SHADOWAI-RISK-LLM-Workflow + agent wrappers);
+private project semantic-tracing-shadowai.
+5.6 System architecture (framework-integrated view) 169
+Figure 5 summarizes the implemented execution pipeline: Scenario/Input ? Lang- 170
+Graph Orchestrator ( StateGraph) ? LangChain-enabled Agents/Tools ( ChatOpenAI, 171
+prompts, tools, JSON parse/retry) ? LangSmith Observability ? Semantic Evaluation 172
+Layer ? Human Review Gate ? Final Decision. LangSmith observes the work?ow; it 173
+does not replace orchestration, evaluation, or human judgment. 174
+Figure 5. Implemented architecture pipeline: LangGraph orchestration, LangChain agents/tools,
+LangSmith trace capture, semantic evaluation, and human decision.
+
+--- PAGE 9 ---
+8 of 37
+5.7 Distinguishing orchestration, reasoning, safeguards, tracing, evaluation, and human decision 175
+Framework orchestration is LangGraph ( llm_agents/graph_langgraph.py: nodes in- 176
+ventory/evidence/governance/human_review and edges including mandatory routing to 177
+human review). LLM reasoning is LangChain ChatOpenAI invocation (llm_agents/llm_client.py)178
+with prompt templates from llm_agents/prompts.py. Deterministic safeguards include 179
+evidence collectors wrapped as LangChain tools, Pydantic schema coercion, and con- 180
+trolled experimental perturbations. Trace capture uses LangSmith ( workflow/tracing.py, 181
+@traceable root/agent spans). Semantic evaluation is rule-based (agents/semantic_detector.py)182
+and is not attributed to LangSmith. Human decision is the Human Review Gate termi- 183
+nal node plus scenario controls; LangSmith does not decide approve/restrict/escalate 184
+outcomes. 185
+6 Layered System Architecture 186
+Figure 6 presents the overall system architecture and distinguishes the implemented 187
+SHADOWAI-RISK baseline, the locally implemented experimental extension, the external 188
+evidence sources, and the components that remain proposed. 189
+Figure 6. Overall system architecture showing SHADOWAI-RISK UI, experimental orchestra-
+tor/agents, external evidence sources, governance decision, and a LangSmith observability layer
+(implemented baseline in green; experimental extension in teal; external sources in orange; pro-
+posed/future in grey).
+Figure 7 reorganizes the same architecture into six functional layers. Layer 1 contains 190
+the SHADOWAI-RISK user interface; Layer 2 provides work?ow orchestration; Layer 191
+3 contains the Inventory , Evidence, and Governance agents; Layer 4 provides semantic 192
+tracing and observability; Layer 5 contains the cybersecurity evidence tools and sources; 193
+and Layer 6 stores work?ow outputs, traces, handoff packets, governance decisions, and 194
+human-review status. 195
+
+--- PAGE 10 ---
+9 of 37
+Figure 7. Layered system architecture (Layers 1?6) with LangSmith as a cross-cutting observability
+annotation.
+LangSmith operates across these layers as an observability mechanism; it does not 196
+replace work?ow orchestration, semantic evaluation, evidence retrieval, or human decision- 197
+making. 198
+Figure 8 presents the implemented experimental work?ow and shows how informa- 199
+tion moves from the organization pro?le through the Inventory , Evidence, and Governance 200
+agents to the Human Review Gate and ?nal governance decision. 201
+Figure 8. Experimental multi-agent work?ow: Organization Pro?le ? Inventory Agent ?
+Evidence Agent ? Governance Agent ? Human Review Gate ? Final Decision, with ap-
+prove/restrict/monitor/escalate branches (remediate remains proposed).
+The work?ow makes the sequence of responsibility explicit: inventory information 202
+is collected ?rst, evidence is retrieved and checked, governance recommendations are 203
+
+--- PAGE 11 ---
+10 of 37
+generated, and cases requiring oversight are routed to human review. The remediate 204
+branch remains proposed and is not claimed as implemented. 205
+Figure 9 speci?es the structured handoff packet used to transfer goals, constraints, 206
+evidence references, con?dence, residual risk, permitted actions, and escalation status 207
+between agents. 208
+Figure 9. Agent handoff packet ?elds used by the experimental extension (implemented locally as
+structured objects).
+These structured packets provide the observable unit used for comparison across 209
+work?ow hops. Their ?elds allow the evaluation layer to identify missing constraints, 210
+unsupported evidence, scope expansion, and escalation-related changes. 211
+Figure 10 illustrates the trace hierarchy produced by the implemented LangSmith 212
+instrumentation and its relationship to the local JSON trace export. 213
+
+--- PAGE 12 ---
+11 of 37
+Figure 10. LangSmith trace structure corresponding to the veri?ed private span pattern (project
+semantic-tracing-shadowai; example root trace ID 019f8c48-1c98-7813-8b59-ae3d4abc96d4). This
+?gure documents a real private LangSmith pattern plus local JSON export; it is not a conceptual
+mock presented as a screenshot.
+The trace structure separates the root work?ow from agent-level and tool-level spans, 214
+allowing the execution path, metadata, latency , handoffs, and governance events to be in- 215
+spected. LangSmith provides observability only; semantic scores and governance decisions 216
+are generated by separate system components. 217
+Figure 11 compares the original deterministic SHADOWAI-RISK prototype with the 218
+separately implemented local multi-agent extension. 219
+Figure 11. Baseline SHADOWAI-RISK versus the local experimental LangSmith extension (imple-
+mented locally; not integrated into production).
+
+--- PAGE 13 ---
+12 of 37
+The comparison clari?es that the original website remains the deployed deterministic 220
+baseline, while the local extension adds agent orchestration, structured handoffs, trace 221
+capture, semantic evaluation, and human-review visibility . The experimental components 222
+were not integrated into the deployed V ercel interface. 223
+7. Methodology 224
+The methodology is mixed-methods and staged. Stage A develops the conceptual 225
+framework and metric formalization. Stage B analyzes the live SHADOWAI-RISK pro- 226
+totype. Stage C implements the local experimental extension (deterministic baseline pre- 227
+served; LangChain LLM agents; LangGraph orchestration; LangSmith instrumentation; 228
+semantic evaluation). Stage D executes the controlled matrix with checkpointing and 229
+resume-safe skips of successful runs. Stage E ?nalized aggregate numerical reporting from 230
+the completed 450/450 matrix; human annotation for calibration and inter-rater agreement 231
+remains pending. 232
+Integrity rules for this package are stated once here: (1) no invented participant 233
+statistics; (2) no invented metric cohort results before annotated controlled runs; (3) syn- 234
+thetic/conceptual traces are labeled as such, and real private LangSmith spans are identi?ed 235
+by project/trace identi?ers without presenting conceptual diagrams as screenshots; (4) 236
+citations are included only after DOI or of?cial-URL veri?cation; (5) baseline-implemented, 237
+experimentally implemented, and still-proposed components are separated in Table ?? and 238
+Figures 6? 19. Semantic-metric datasets for Stage F and survey datasets for Stage G remain 239
+pending. 240
+Related-work search prioritized peer-reviewed venues, major AI conferences, and 241
+of?cial standards or regulatory sources (Appendix A). The complete literature matrix is 242
+provided as Supplementary File S1. The survey instrument is Supplementary File S2. 243
+Con?guration templates, prompts, and metric stubs are Supplementary File S3. Editable 244
+?gure sources are Supplementary File S4. 245
+Figure 12 shows how qualitative and quantitative strands meet at validation. 246
+Figure 12. Mixed-methods evaluation design linking qualitative and quantitative strands at valida-
+tion.
+
+--- PAGE 14 ---
+13 of 37
+8. Experimental Design 247
+Figure 13 summarizes the experimental loop. The expanded local design uses ? 30 con- 248
+trolled scenarios; three primary conditions (deterministic baseline; LLM without semantic 249
+evaluation; LLM with LangSmith + semantic evaluation); planned repetitions; temperature 250
+variability; and ablations. LLM conditions execute through LangGraph with LangChain 251
+agent/tool calls. The full experimental matrix completed at 450/450 ( complete:true: de- 252
+terministic 32, llm_no_eval 160, llm_langsmith_semantic_eval 160, variability 50, ablations 253
+48; 0 terminal failures). 254
+Figure 13. Experimental loop including repetitions, annotation, metric computation, planned statisti-
+cal testing, and reporting.
+Repetitions, baseline conditions, annotation, metric computation, and planned sta- 255
+tistical testing are part of the loop. With the matrix complete (450/450), primary eval 256
+versus no-eval results (n=160 each) are: TCS 0.624 vs. 0.912 (Holm-adjusted p < 0.001, Cliff 257
+? ? ? 0.33 medium); WRS_equal and WRS_expert signi?cantly lower with eval (small ef- 258
+fects); SPS/AHF/IDR/TUA/GCR/HPR/HEP not signi?cant; latency ? 126.2 s vs. ? 101.7 s 259
+(signi?cant, Cliff ? ? 0.67 large); tokens not signi?cant; local cost $0; decision-family cor- 260
+rectness 57/160 (0.356) vs. 59/160 (0.369), Fisher/ ? 2 n.s. ( p? 0.91). Ablations ( n=8, low 261
+power) associate removing constraints / evidence identi?ers with large SPS drops (Cliff 262
+? ? 0.5?0.625) and should be interpreted cautiously . Human calibration and inter-rater 263
+annotation remain pending. 264
+Figure 14 visually summarizes the two primary reported outcomes. Trace complete- 265
+ness was lower in the evaluation-enabled condition, while decision-family correctness 266
+remained similar across conditions. 267
+Figure 15 provides a conceptual nested-run schema for documentation only . It must 268
+not be read as an empirical LangSmith screenshot. 269
+9. Metrics 270
+Figure 16 shows how baseline intent is compared with each hop before metric calcula- 271
+tion. 272
+Table 4 presents the evaluation metric suite. 273
+Let a work?ow have ordered hops h = 0...H, with reference intent I 0 and observed 274
+intent I h. Let C(I) be the constraint set, and let EvidSupport(I h) penalize unsupported 275
+claims. 276
+
+--- PAGE 15 ---
+14 of 37
+Figure 14. Comparison of the primary outcomes for the two LLM conditions. The LLM condition
+without semantic evaluation showed higher trace completeness than the LLM condition with Lang-
+Smith and semantic evaluation, whereas decision-family correctness was similar between conditions.
+Each condition included 160 runs.
+Figure 15. Conceptual nested-run schema for documentation. Not an empirical LangSmith result.
+
+--- PAGE 16 ---
+15 of 37
+Figure 16. Comparison of baseline intent with subsequent hops and derivation of SPS, IDR, HPR,
+and AHF.
+T able 4.Evaluation metric suite.
+Metric Abbrev . Range Interpretation
+Semantic Preservation
+Score SPS [0,1]
+Higher = better
+meaning/constraint
+preservation
+Agent Handoff
+Fidelity AHF [0,1]
+Higher = more
+complete valid handoff
+packets
+Instruction Drift Rate IDR [0,1] Higher = more drift
+(worse)
+Trace Completeness
+Score TCS [0,1]
+Higher = more
+required spans/?elds
+present
+Tool-Use Accuracy TUA [0,1] Higher = correct tool
+selection/execution
+Governance
+Compliance Rate GCR [0,1] Higher = fewer policy
+violations
+Hallucination
+Propagation Rate HPR [0,1]
+Higher = more
+propagated
+unsupported claims
+Human Escalation
+Precision HEP [0,1] Higher = escalations
+are warranted
+Work?ow Reliability
+Score WRS [0,1] Composite reliability
+indicator
+
+--- PAGE 17 ---
+16 of 37
+SPSh = ? ?Sim(I0, Ih) + ? ? |C(I0) ? C(Ih)|
+|C(I0)| + ? ?EvidSupport(Ih), ? + ? + ? = 1 (1) 277
+Equation (1) de?nes the Semantic Preservation Score (SPS) for handoff h. It measures how 278
+well the observed downstream intent preserves the original intent. The metric combines 279
+semantic similarity , constraint-set overlap, and evidence support. The weights ? , ? , and ? 280
+determine the contribution of the three components and sum to one. A higher SPS value 281
+indicates stronger preservation of the original intent across the handoff. The work?ow-level 282
+SPS is the mean of SPS h over all evaluated handoffs h ? 1. 283
+AHF = 1
+H ?
+h
+Completeness(packeth) ?Validity(packeth) (2) 284
+Equation (2) de?nes Agent Handoff Fidelity (AHF). AHF measures the completeness and 285
+validity of handoff packets. A higher AHF value is preferable and indicates that packets 286
+are both more complete and more valid across hops. 287
+IDR = clip[0,1]
+( 1
+H ?
+h
+[
+1 ? |C(I0) ? C(Ih)|
+|C(I0)| + ScopeExpansion(Ih)
+])
+(3) 288
+Equation (3) de?nes the Instruction Drift Rate (IDR). IDR measures instruction or constraint 289
+drift and scope expansion. A lower IDR value is preferable and indicates less drift relative 290
+to the reference intent. 291
+TCS = |ObservedRequiredSpans ? RequiredSpans|
+|RequiredSpans| (4) 292
+Equation (4) de?nes the Trace Completeness Score (TCS). TCS measures the completeness 293
+of required trace spans. A higher TCS value is preferable and indicates that a larger fraction 294
+of required spans is observed. 295
+TUA = # correct tool decisions
+# tool decisions (5) 296
+Equation (5) de?nes Tool-Use Accuracy (TUA). TUA measures the proportion of correct 297
+tool-use decisions. A higher TUA value is preferable and indicates more accurate tool 298
+selection and execution. 299
+GCR = 1 ? # policy violations
+# policy checks (6) 300
+Equation (6) de?nes the Governance Compliance Rate (GCR). GCR measures policy com- 301
+pliance. A higher GCR value is preferable and indicates fewer policy violations relative to 302
+the number of policy checks. 303
+HPR = # unsupported claims reused downstream
+# unsupported claims introduced (7) 304
+Equation (7) de?nes the Hallucination Propagation Rate (HPR). HPR measures the down- 305
+stream reuse of unsupported claims. A lower HPR value is preferable and indicates less 306
+propagation of unsupported claims across agent hops. 307
+HEP = # warranted escalations
+# escalations raised (8) 308
+Equation (8) de?nes Human Escalation Precision (HEP). HEP measures the proportion of 309
+warranted escalations among all escalations raised. A higher HEP value is preferable and 310
+
+--- PAGE 18 ---
+17 of 37
+indicates that escalations more consistently correspond to conditions that warrant human 311
+review. 312
+WRS = normalize(w1 ?SPS + w2 ?AHF + w3 ?TCS + w4 ?TUA + w5 ?GCR ? w6 ?IDR ? w7 ?HPR)
+(9) 313
+Equation (9) de?nes the Work?ow Reliability Score (WRS). WRS combines the normalized 314
+metrics into one weighted work?ow-level score. A higher WRS value is preferable and 315
+indicates stronger overall work?ow reliability under the chosen weighting scheme. 316
+Taken together, SPS and AHF evaluate semantic preservation and handoff quality; TCS 317
+and TUA evaluate trace and tool-use correctness; GCR evaluates policy compliance; IDR 318
+and HPR capture undesirable drift and unsupported-claim propagation; HEP evaluates 319
+escalation quality; and WRS combines the normalized metrics into an overall work?ow 320
+score. 321
+Weight values require calibration on future annotated corpora [ 24,42]. Latency , token 322
+usage, and cost per work?ow are logged from LangSmith metadata as operational com- 323
+plements, not semantic ?delity measures. Additional formal notes appear in Appendix 324
+C. 325
+Figure 17 shows the human-escalation process tied to metric and policy triggers 326
+[34,43]. 327
+Figure 17. Human-in-the-loop escalation process with trigger, freeze, evidence package, human
+decision, and resume or terminate paths.
+10. Results 328
+10.1 Case-study observational results 329
+Inspection of the live SHADOWAI-RISK prototype con?rms an academic-research- 330
+prototype framing and an executive work?ow organized around pro?le setup, intelligence 331
+refresh, risk-?nding review, and report generation. Live-review priority indicators depend 332
+on successful refresh against the security database. When refresh has not occurred or source 333
+values are missing, ?elds are shown as Data Unavailable or Not refreshed. The decision 334
+pathway sequences Known Security Issue ? Affected Evidence ? Risk Level ? What To 335
+Do. 336
+
+--- PAGE 19 ---
+18 of 37
+10.2 Framework and instrumentation products 337
+Stage A/B products include the metric speci?cation, trace-tagging scheme, evaluation 338
+rubric, and the three-category implemented/experimental/proposed boundary (Figures 6? 339
+11; Table ??). Stage C/D/E products include the local experimental project, functional 340
+tests, local JSON traces, and optional private LangSmith spans. These products support 341
+process-level inspection; they do not by themselves constitute proven semantic-preservation 342
+effectiveness. 343
+10.2.1 Implementation details (code-backed) 344
+LLM invocation uses LangChain ChatOpenAI against a local Ollama OpenAI- 345
+compatible endpoint by default ( llm_agents/llm_client.py), with ChatPromptTemplate 346
+and JsonOutputParser, plus .with_retry and a repair chain. Evidence tooling is ex- 347
+posed as LangChain @tool functions in llm_agents/tools_langchain.py. Orchestration 348
+is a compiled LangGraph StateGraph in llm_agents/graph_langgraph.py with nodes 349
+inventory/evidence/governance/human_review. LangSmith root/agent spans are cre- 350
+ated via langsmith.traceable when enabled. Semantic evaluation remains rule-based 351
+(agents/semantic_detector.py) and is not attributed to LangSmith. 352
+10.3 Genuine LLM-based multi-agent condition (local experimental extension) 353
+The completed experimental matrix comprised 450 work?ow executions, including 354
+160 runs without semantic evaluation and 160 runs with LangSmith tracing and semantic 355
+evaluation. The primary quantitative comparison is summarized below. 356
+Figure 18. Comparison of the two primary LLM conditions. The semantic-evaluation condition
+increased work?ow latency while maintaining similar decision-family correctness.
+A genuine LLM-based multi-agent condition was implemented with LangChain and 357
+LangGraph and compared with the deterministic baseline under controlled scenarios. Each 358
+of the four roles issues an actual language-model API call through LangChain ChatOpenAI 359
+and returns a Pydantic-validated handoff packet; hops are scheduled by LangGraph. The 360
+deterministic baseline remains runnable and unmodi?ed for comparison. The completed 361
+450/450 matrix supports primary eval versus no-eval contrasts ( n=160 each) under this 362
+design, with aggregate inferential results reported elsewhere in this manuscript 363
+
+--- PAGE 20 ---
+19 of 37
+T able 5. Summary of the primary comparison between the LLM multi-agent condition without
+semantic evaluation and the LLM condition with LangSmith tracing and semantic evaluation. Each
+primary condition included 160 runs.
+Outcome LLM without
+evaluation
+LLM with
+evaluation
+Statistical result Effect size Interpretation
+Trace Completeness
+Score (TCS)
+0.912 0.624 Holm-adjusted
+p < 0.001
+Cliff?s
+? ? ? 0.33
+(medium)
+Trace completeness was signi?cantly
+lower in the evaluation-enabled
+condition.
+Work?ow Reliability
+Score (equal weights)
+NR NR Signi?cant after
+Holm correction
+Small
+WRS under equal weighting was
+signi?cantly lower with semantic
+evaluation.
+Work?ow Reliability
+Score (expert weights)
+NR NR Signi?cant after
+Holm correction
+Small
+WRS under expert-de?ned weighting
+was signi?cantly lower with semantic
+evaluation.
+SPS, AHF, IDR, TUA,
+GCR, HPR, and HEP
+Computed Computed Not signi?cant No meaningful
+effect
+established
+No statistically signi?cant differences
+were observed for these semantic and
+governance metrics.
+Decision-family
+correctness
+59/160 (0.369) 57/160 (0.356) Fisher/ ? 2,
+p ? 0.91
+Negligible Decision-family correctness was
+similar between the two conditions.
+Mean work?ow
+latency
+? 101.7 s ? 126.2 s Signi?cant Cliff?s ? ? 0.67
+(large)
+Semantic evaluation increased
+work?ow latency .
+Token usage Recorded Recorded Not signi?cant No meaningful
+effect
+established
+Token usage did not differ
+signi?cantly between conditions.
+Local execution cost $0 $0 Not applicable Not applicable Both conditions used local model
+execution and incurred no API cost.
+NR = Not separately reported.
+Figure 18 provides a visual summary of the principal performance difference between 364
+the two experimental conditions, whereas Table 5 reports the complete quantitative and 365
+statistical comparison across all evaluated metrics. 366
+Study design uses three conditions on the same expanded scenario set ( ? 30 scenarios): 367
+(A) deterministic baseline; (B) LLM multi-agent without semantic evaluation; (C) LLM 368
+multi-agent with private LangSmith tracing and a semantic evaluation layer. This separa- 369
+tion is required so improvements from evaluation logic are not attributed to LangSmith 370
+observability alone. 371
+Expanded scenarios include clean evidence, low-risk approval, high-risk restriction, 372
+missing/con?icting evidence, unsupported recommendation, instruction drift, constraint 373
+omission, scope expansion, evidence in?ation, tool mismatch/failure, Shadow AI, manda- 374
+tory escalation, and escalation suppression, with mild/moderate/severe drift severities and 375
+multiple hop locations. LLM scenarios are con?gured for repeated runs (target ? 5) with 376
+temperature variability experiments. Deterministic runs are executed once per scenario 377
+because the baseline is fully reproducible. 378
+Metric methodology was strengthened beyond one-off prototype scoring: formal 379
+numerator/denominator de?nitions, missing-data rules, aggregation, con?dence intervals, 380
+and WRS sensitivity across equal, expert-de?ned, and data-driven weights are speci?ed 381
+in Metric_Definitions_and_Calibration.md. Human annotation guidelines were pre- 382
+pared; inter-rater agreement is pending and is not fabricated. Therefore, the metrics are 383
+treated as computationally applied under formal de?nitions rather than as fully calibrated 384
+or externally validated measures. 385
+Cautious interpretation is required. LangSmith records the work?ow, whereas the 386
+evaluation layer compares handoff states, evidence status, and governance outcomes. 387
+This manuscript does not claim proven semantic preservation, production readiness, or 388
+large-scale statistical signi?cance on the basis of the local controlled experiment alone. 389
+
+--- PAGE 21 ---
+20 of 37
+Figure 19 summarizes the overall three-condition study design. It separates the 390
+deterministic baseline, the LLM multi-agent condition without semantic evaluation, and 391
+the LLM multi-agent condition with LangSmith tracing and semantic evaluation. 392
+Figure 19. Three-condition study design separating agents, LangSmith, and evaluation.
+This separation prevents the effects of semantic evaluation from being incorrectly 393
+attributed to LangSmith observability alone and clari?es the role of each experimental 394
+component. 395
+Figure 20 presents the implemented LLM-based multi-agent work?ow and the schema- 396
+validated exchange of information across the Inventory , Evidence, Governance, and Human 397
+Review stages. 398
+Figure 20. Genuine LLM multi-agent work?ow with schema validation.
+The work?ow shows how each agent produces a structured handoff packet before the 399
+next stage executes, allowing the communication path to be inspected and validated. 400
+Figure 21 summarizes the metric hierarchy used in the study and distinguishes com- 401
+putationally applied metrics from measures that remain pending human calibration. 402
+
+--- PAGE 22 ---
+21 of 37
+Figure 21. Metric stack distinguishing computational scores from pending human calibration.
+This distinction prevents prototype computational measures from being interpreted 403
+as externally validated governance indicators. 404
+A small controlled laboratory comparison was executed locally between (i) the deter- 405
+ministic SHADOWAI-RISK decision pathway used by the current application logic and (ii) 406
+the LangSmith-instrumented multi-agent work?ow (Inventory Agent ? Evidence Agent 407
+? Governance Agent ? Human Review Gate). The production V ercel deployment and 408
+GitHub repository were not modi?ed. 409
+Baseline de?nition. The baseline is a local deterministic port of SHADOWAI-RISK 410
+application logic: organization pro?le and AI inventory , NVD/NIST evidence attach- 411
+ment, severity-based recommended actions, and Data Unavailable handling. The baseline 412
+does not implement multi-agent constraint handoffs, LangSmith tracing, or semantic-drift 413
+detection. 414
+Experimental-condition de?nition. The experimental condition uses structured hand- 415
+off packets, private LangSmith tracing, and a rule-based evaluation layer. LangSmith 416
+records the work?ow; it does not make governance decisions. The evaluation layer com- 417
+pares handoff states, evidence status, and governance outcomes to identify drift, unsup- 418
+ported recommendations, and escalation conditions. 419
+Scenario set ( n = 5). The controlled scenarios included clean valid evidence; instruc- 420
+tion drift (omission of the missing-evidence constraint at hop 1); missing evidence (forced 421
+Data Unavailable); mandatory human escalation (unapproved Shadow AI); and con?icting 422
+recommendations (contradictory channels). Intentionally introduced errors were labeled as 423
+controlled experimental perturbations. 424
+Table 6 reports the expected and observed decisions, escalation behavior, drift detec- 425
+tion, evidence status, runtime, and overall result for each scenario and condition. 426
+
+--- PAGE 23 ---
+22 of 37
+T able 6.Per-scenario comparison of the deterministic baseline and multi-agent conditions.
+(a) Decision outcomes by scenario
+Scenario Condition Expected Actual Escalation
+expected
+Escalation performed
+Clean valid-evidence scenario Deterministic baseline Monitor Monitor False False
+Clean valid-evidence scenario Multi-agent with
+LangSmith
+Proceed Proceed False False
+Intentionally introduced
+instruction-drift scenario
+Deterministic baseline Monitor Monitor False False
+Intentionally introduced
+instruction-drift scenario
+Multi-agent with
+LangSmith
+Hold Hold True True
+Missing-evidence scenario Deterministic baseline Monitor Monitor False False
+Missing-evidence scenario Multi-agent with
+LangSmith
+Hold Hold True True
+Mandatory human-escalation
+scenario
+Deterministic baseline Escalate Escalate True True
+Mandatory human-escalation
+scenario
+Multi-agent with
+LangSmith
+Reject Reject True True
+Con?icting-recommendation
+scenario
+Deterministic baseline Escalate Escalate True True
+Con?icting-recommendation
+scenario
+Multi-agent with
+LangSmith
+Hold Hold True True
+(b) Detection, evidence, runtime, and overall result
+Scenario Condition Drift
+present
+Drift
+detected
+Evidence
+complete
+Runtime (s) Result
+Clean valid-evidence
+scenario
+Deterministic baseline False False True 0.0001 PASS
+Clean valid-evidence
+scenario
+Multi-agent with
+LangSmith
+False False True 5.9330 PASS
+Intentionally introduced
+instruction-drift scenario
+Deterministic baseline True False False 0.0001 PASS
+Intentionally introduced
+instruction-drift scenario
+Multi-agent with
+LangSmith
+True True False 6.1636 PASS
+Missing-evidence scenario
+Deterministic baseline False False False 0.0000 PASS
+Missing-evidence scenario Multi-agent with
+LangSmith
+False False False 6.4757 PASS
+Mandatory
+human-escalation scenario
+Deterministic baseline False False False 0.0000 PASS
+Mandatory
+human-escalation scenario
+Multi-agent with
+LangSmith
+False False False 5.1679 PASS
+Con?icting-
+recommendation scenario
+Deterministic baseline False False False 0.0001 PASS
+Con?icting-
+recommendation scenario
+Multi-agent with
+LangSmith
+False False False 5.5164 PASS
+The prototype scenario-level metric rules were de?ned as follows: SPS equals 1 427
+when no drift is present and otherwise equals max(0, 1 ? lost/|C0|); AHF is the mean 428
+completeness of required handoff ?elds; IDR equals lost/|C0|when drift is present and 429
+0 otherwise; TCS approximates packet and trace completeness; TUA penalizes invented 430
+CVE identi?ers; GCR equals 1 when unsupported claims are absent and 0 otherwise; HPR 431
+equals 1 when unsupported claims propagate and 0 otherwise; and HEP equals 1 when 432
+required escalations are handled by a human or when a non-escalated case is correctly left 433
+un-escalated. These prototype computations are not calibrated or externally validated. 434
+Table 7 summarizes the practical measures obtained from the controlled prototype 435
+comparison. 436
+
+--- PAGE 24 ---
+23 of 37
+T able 7.Summary of practical measures from the controlled prototype experiment. The measures are
+not externally calibrated.
+Measure Deterministic
+baseline
+Multi-agent with
+LangSmith
+Interpretation
+Decision accuracy 1.0 1.0 Fraction of decisions matching the
+condition-speci?c expected outcome.
+Drift-detection recall 0.0 1.0
+Recall calculated for scenarios in which
+ground-truth drift was present. The baseline
+contains no drift detector.
+Missing-evidence
+detection rate
+1.0 1.0
+Fraction of missing-evidence scenarios
+correctly marked as incomplete or
+unavailable.
+Escalation precision 1.0 1.0 Fraction of performed escalations that were
+expected under the scenario protocol.
+Escalation recall 1.0 1.0 Fraction of expected escalations that were
+performed.
+Average runtime (s) 0.0001 5.8513
+The multi-agent condition includes model
+execution, tool use, orchestration, and tracing
+overhead.
+Trace completeness 0.0 1.0 The deterministic baseline does not generate
+LangSmith traces.
+The comparison showed high decision accuracy for both conditions relative to their 437
+condition-speci?c expected mappings. The multi-agent condition uniquely detected the 438
+controlled instruction-drift perturbation and recorded formal Human Review Gate out- 439
+comes. The deterministic baseline correctly handled Data Unavailable without inventing 440
+evidence and escalated Shadow AI or high-severity cases through deterministic rules, but 441
+it could not detect hop-level constraint drift because it does not contain constraint-carrying 442
+agent handoffs. The multi-agent runs were slower and more complex. No claim is made of 443
+production validation, proven semantic preservation, or large-scale statistical signi?cance. 444
+Figure 22 compares the deterministic baseline and the experimental multi-agent work- 445
+?ow at the process level. 446
+Figure 22. Deterministic baseline versus multi-agent experimental work?ow.
+
+--- PAGE 25 ---
+24 of 37
+The comparison highlights that the multi-agent extension introduces explicit agent 447
+orchestration, structured handoffs, trace capture, semantic evaluation, and human-review 448
+visibility while preserving the governance objectives of the original deterministic pathway . 449
+Figure 23 presents the controlled scenario design and the intentionally introduced 450
+perturbations used to evaluate work?ow behavior. 451
+Figure 23. Controlled scenario design with labeled perturbations.
+The scenario design evaluates clean evidence handling, instruction drift, missing evi- 452
+dence, mandatory escalation, and con?icting recommendations under controlled laboratory 453
+conditions. 454
+Figure 24 illustrates the controlled instruction-drift case in which the original instruc- 455
+tion and a modi?ed downstream handoff are compared. 456
+
+--- PAGE 26 ---
+25 of 37
+Figure 24. Original instruction versus changed handoff (controlled drift).
+The comparison demonstrates how a change introduced during agent communication 457
+can be detected by examining successive structured handoff states. 458
+Figure 25 summarizes the decision path followed when required evidence is missing 459
+or cannot be veri?ed. 460
+Figure 25. Missing-evidence detection path.
+The work?ow preserves the Data Unavailable state rather than generating unsup- 461
+ported evidence and routes the case according to the de?ned governance protocol. 462
+Figure 26 presents the human-escalation pathway used when the work?ow identi?es 463
+a case that requires manual governance review. 464
+
+--- PAGE 27 ---
+26 of 37
+Figure 26. Human-escalation path.
+The Human Review Gate provides an explicit accountability point by ensuring that 465
+prede?ned escalation conditions are resolved through human oversight rather than au- 466
+tonomous decision-making. 467
+Figure 27 shows the relationship between LangSmith trace capture and the separate 468
+semantic evaluation layer. 469
+Figure 27. LangSmith trace plus evaluation-layer relationship.
+LangSmith records work?ow execution, spans, and metadata, whereas the evalua- 470
+tion layer compares handoff states, evidence completeness, governance outcomes, and 471
+
+--- PAGE 28 ---
+27 of 37
+semantic consistency . The two components are complementary and should not be treated 472
+as interchangeable. 473
+10.5 Functional implementation results 474
+Functional implementation results are limited to veri?ed software evidence. Four 475
+agent components were implemented locally (Inventory Agent, Evidence Agent, Gover- 476
+nance Agent, Human Review Gate) using LangChain LLM calls and LangGraph orches- 477
+tration, alongside a preserved deterministic baseline. The work?ow executed successfully 478
+end-to-end. Local JSON traces were generated. Live NVD retrieval returned real CVE 479
+identi?ers. The Human Review Gate was triggered in escalation/Shadow AI conditions. 480
+Two local unit tests passed. Original production ?les were not modi?ed, and no GitHub 481
+or V ercel deployment changes were made. Optional LangSmith instrumentation pro- 482
+duced veri?ed private spans in project semantic-tracing-shadowai (example root trace 483
+ID 019f8c48-1c98-7813-8b59-ae3d4abc96d4). As summarized in Table 5, the completed 484
+experimental matrix provides computational comparisons across the two primary LLM 485
+conditions; however, human calibration and external semantic validation remain pending. 486
+No annotated-corpus SPS, AHF, IDR, HPR, or WRS values are reported because annotated 487
+semantic metric computation has not yet been performed. 488
+T able 8.Functional implementation validation status (veri?ed evidence only).
+V alidation item Status Evidence
+Inventory Agent Implemented locally /
+LangChain LLM condition
+Local source code;
+work?ow run
+Evidence Agent
+Implemented locally /
+LangChain tools + live
+NVD retrieval
+Live CVE identi?ers in
+local run
+Governance Agent
+Implemented locally /
+LangChain LLM +
+LangGraph orchestration
+Local execution outputs;
+genuine LLM handoffs
+Human Review Gate
+Implemented locally /
+LangGraph human_review
+node
+Triggered in
+escalation/Shadow AI
+scenario
+Handoff packets
+Implemented locally /
+LLM-authored +
+schema-validated
+Structured packet objects in
+experimental project
+Local JSON trace export Implemented outputs/local_traces/*.json
+LangSmith cloud trace Implemented and veri?ed
+(private)
+semantic-tracing-shadowai;
+019f8c48-1c98-7813-8b59-
+ae3d4abc96d4
+Unit tests Passed 2 passed
+Semantic metrics
+(SPS/AHF/IDR/...)
+Pending semantic
+validation
+Not calculated from
+annotated corpora
+Production deployment
+integration
+Not integrated into
+production
+Local-only experiment;
+V ercel unchanged
+As shown in Table 8, the core implementation components?including the Inventory , 489
+Evidence, and Governance agents, the Human Review Gate, LangGraph orchestration, 490
+structured handoff packets, local JSON traces, and private LangSmith tracing?were func- 491
+tionally veri?ed. In contrast, semantic metric calibration and production deployment 492
+remain outside the scope of the present study . 493
+
+--- PAGE 29 ---
+28 of 37
+T able 9.Data collection status.
+Data element Status Location
+Live prototype architecture
+observation Collected (qualitative) Section 6; Section 10.1
+V eri?ed literature matrix Collected Supplementary File S1
+Metric de?nitions Speci?ed Section 9; Appendix C; S3
+Controlled multi-agent
+experiments
+Partially collected
+(functional)
+Local experimental
+work?ow + private
+LangSmith spans; semantic
+metrics still pending
+Survey responses Pending Supplementary File S2
+Redacted production
+LangSmith traces Pending
+Figure 17 is conceptual only
+Local experimental
+multi-agent work?ow
+Implemented / functionally
+tested
+SHADOWAI-RISK-
+LangSmith-Experimental
+Local JSON traces Collected outputs/local_traces/
+Private LangSmith cloud
+spans Collected (private)
+Project
+semantic-tracing-shadowai;
+root 019f8c48-1c98-7813-
+8b59-ae3d4abc96d4
+Semantic metric cohort
+statistics Pending Future annotated corpus
+Table 9 summarizes the current status of the datasets, implementation artifacts, and 494
+supporting resources collected during this work. The implemented prototype, local traces, 495
+and private LangSmith spans are available for the reported experiments, whereas survey 496
+data, annotated semantic metrics, and production-scale validation remain future work. 497
+11. Discussion 498
+With the LLM condition, discussion must distinguish deterministic baseline behavior 499
+from LLM agent variability , LangSmith observability (trace completeness), and semantic 500
+evaluation detections. Pending human annotation limits claims about construct-validated 501
+SPS/IDR/HPR. A genuine LLM-based multi-agent condition was implemented and com- 502
+pared with the deterministic baseline under controlled scenarios; calibration and external 503
+validation remain future work. 504
+Controlled-comparison discussion. Relative to the deterministic baseline, private 505
+LangSmith tracing improved visibility into instruction/constraint changes by preserving 506
+hop-level packets and spans that the evaluation layer can compare. Identi?cation of 507
+missing evidence was possible in both conditions as Data Unavailable; the multi-agent 508
+condition additionally made the hop and escalation trigger explicit in structured outputs 509
+and traces. Escalation points were more visible in the multi-agent Human Review Gate 510
+(freeze metadata and human outcome) than in baseline leadership-guidance text. 511
+Importantly , LangSmith itself does not make decisions. The trace provides the observ- 512
+able execution record, while the evaluation layer compares handoff states, evidence status, 513
+and governance outcomes to identify drift, unsupported recommendations, and escalation 514
+conditions. 515
+The comparison does not claim proven semantic preservation, production validation, 516
+general enterprise superiority , or large-scale statistical signi?cance. The local extension 517
+includes both deterministic baseline agents and LangChain/LangGraph LLM agents; dis- 518
+cussion must not con?ate the two. Final matrix aggregates are reported from the completed 519
+450/450 run (0 terminal failures). 520
+
+--- PAGE 30 ---
+29 of 37
+Synthesizing the completed experimental comparison, the multi-agent implementation 521
+did not necessarily produce more accurate ?nal governance decisions than the deterministic 522
+baseline or the LLM condition without semantic evaluation; decision-family correctness did 523
+not differ signi?cantly between the primary LLM conditions. Its principal demonstrated 524
+advantage was improved transparency of the decision-making process: explicit agent 525
+handoffs, structured communication packets, LangSmith traces, and semantic evaluation 526
+made intermediate reasoning observable and auditable. These bene?ts were accompanied 527
+by increased work?ow latency and greater implementation complexity relative to the 528
+deterministic pathway . 529
+Enterprise AI governance needs process-level semantic accountability , not only out- 530
+come summaries or CVE lists [ 1,44,45]. SHADOWAI-RISK shows how authoritative vulner- 531
+ability evidence can ground executive AI-risk review. Semantic tracing is the complemen- 532
+tary capability when autonomous agents participate in collecting evidence, summarizing 533
+risk, or recommending restrictions. 534
+The local experimental implementation demonstrates that the conceptual architecture 535
+can be operationalized with LangChain, LangGraph, and LangSmith without modifying 536
+the production website. Functional validation, semantic validation, and production val- 537
+idation remain distinct. Because multi-agent LLM systems are stochastic, repeated-run 538
+and variability analyses were required; the completed 450/450 matrix (0 terminal failures) 539
+now supports the reported aggregate numerical and inferential claims. Human calibration, 540
+inter-rater agreement, surveys, and production integration remain pending. 541
+Figure 28 consolidates contributions against gap, method, output, and validation 542
+status. 543
+Figure 28. Research contributions linked to gap, method, output, and validation status.
+12. Governance and Cybersecurity Implications 544
+Semantic tracing supports Measure/Govern needs in NIST AI RMF by creating au- 545
+ditable evidence of agent behavior [ 1,33]. It supports ISACA-oriented assurance by gener- 546
+ating sampleable artifacts [ 19,44]. For organizations considering AI restrictions, drift and 547
+compliance metrics can justify risk-tiered controls rather than blunt bans or unmonitored 548
+permission. 549
+
+--- PAGE 31 ---
+30 of 37
+Figure 29 separates authoritative framework requirements from the authors? inter- 550
+pretive mappings. These mappings are research interpretations, not certi?cation or legal 551
+compliance claims. 552
+Figure 29. Separation of authoritative framework requirements from authors? interpretive mappings
+(not certi?cation).
+Table 10 presents the interpretive governance control mapping from semantic-tracing 553
+signals. 554
+T able 10.Interpretive governance control mapping from semantic-tracing signals.
+T racing signal Governance use Example alignment
+(interpretive)
+Low SPS / high IDR Pause autonomous handoff;
+revise prompts/policies
+NIST AI RMF Manage;
+ISACA monitoring
+High HPR Require evidence re-check
+before executive reporting
+NIST AI 600-1 confabula-
+tion/hallucination risk
+Low TCS Treat decision as
+insuf?ciently auditable
+EU AI Act
+transparency/logging
+expectations
+Low GCR Trigger policy exception
+work?ow
+ISACA AI audit control
+testing
+HEP monitoring Tune human-gate
+thresholds
+OECD accountability; IEEE
+7000 oversight values
+Cybersecurity implications are twofold. First, SHADOWAI-RISK ties AI inventories to 555
+NVD vulnerability intelligence, supporting identify/protect/detect-style outcomes in CSF 556
+terms [31,37,46]. Second, semantic tracing can reveal unsafe tool selections, incomplete 557
+handoffs, and unveri?ed claims relevant to ENISA?s AI cybersecurity concerns [ 4,47,48]. 558
+Practical recommendations follow directly [ 14,16,49]: inventory AI systems; bind 559
+inventories to authoritative vulnerability intelligence with explicit missing-data handling; 560
+require tracing for multi-agent work?ows; measure semantic preservation rather than 561
+?nal-answer quality alone; install human gates for high-impact actions [ 2,34]; and keep 562
+prototype capabilities distinct from production governance claims in board reporting. 563
+
+--- PAGE 32 ---
+31 of 37
+13. Threats to V alidity and Limitations 564
+Construct validity: semantic similarity proxies may imperfectly capture policy con- 565
+straints [10]; constraint-set overlap and human rubric coding are therefore required. Internal 566
+validity: stochastic model outputs necessitate repeated runs and logging discipline [ 21]. 567
+External validity: ?ndings from the SHADOWAI-RISK case and future laboratory scenarios 568
+may not generalize to all sectors. Reliability: annotation guidelines and inter-rater statistics 569
+are planned. Conclusion validity: this manuscript avoids unsupported inferential claims 570
+by labeling pending data. 571
+Limitations: the live case study demonstrates evidence-linked AI risk review; the 572
+experimental extension is implemented locally and functionally tested but is not integrated 573
+into production; the full experimental matrix is complete (450/450); semantic metrics are 574
+not yet human-calibrated; no inter-rater annotation study has been completed; production 575
+deployment integration has not been completed; metric weights require calibration; survey 576
+data are not yet collected; governance mappings are interpretive; full LangSmith cloud 577
+tracing depends on private credentials and must remain private; and no claim of legal or 578
+regulatory compliance is made. These ?ndings suggest that the value of the multi-agent 579
+architecture lies primarily in improving process transparency , semantic traceability , and 580
+governance auditability rather than replacing deterministic work?ows. For applications 581
+where only a ?nal governance recommendation is required, the deterministic baseline may 582
+remain suf?cient. However, in settings requiring inspection of intermediate reasoning, 583
+agent communication, and governance accountability , the multi-agent architecture provides 584
+capabilities that the deterministic work?ow does not inherently offer. 585
+14. Future Work 586
+Future work will deepen LangChain tool-calling agent patterns where bene?cial; 587
+expand LangGraph conditional routing for richer escalation policies; annotate hand- 588
+off quality and complete human calibration and inter-rater agreement studies; compute 589
+SPS/AHF/IDR/TCS/TUA/GCR/HPR/HEP/WRS on human-annotated corpora; collect 590
+survey data; add redacted LangSmith screenshots; study adversarial prompt injection 591
+across handoffs; and integrate with the production UI only after validation. 592
+15. Conclusion 593
+This paper presented a semantic-tracing framework for multi-agent work?ows, an- 594
+chored in LangSmith observability and the SHADOWAI-RISK enterprise AI governance 595
+prototype, and implemented locally with genuine LangChain LLM tooling and LangGraph 596
+orchestration alongside a preserved deterministic baseline. The full experimental matrix is 597
+complete at 450/450 ( complete:true; 0 terminal failures), and aggregate numerical and 598
+inferential results are reported above. Across the completed comparison, the principal 599
+practical bene?t of the multi-agent extension was process transparency and auditability 600
+rather than superior ?nal-decision accuracy , at the cost of higher latency and greater imple- 601
+mentation complexity . Semantic tracing offers organizations a practical path for inspecting 602
+what agents exchange and where governance controls should intervene, pending human 603
+calibration, semantic validation via inter-rater agreement, surveys, and production integra- 604
+tion. Taken together, the ?ndings indicate that the original deterministic SHADOWAI-RISK 605
+work?ow remains appropriate for ?xed, rule-based governance tasks in which the pri- 606
+mary objective is to produce a ?nal recommendation ef?ciently . The multi-agent extension 607
+provides additional value when organizations also require visibility into how that recom- 608
+mendation was produced. By exposing structured handoffs, intermediate work?ow states, 609
+evidence use, semantic changes, and human-review points, the agent-based architecture 610
+improves transparency , traceability , and auditability . These bene?ts, however, were accom- 611
+
+--- PAGE 33 ---
+32 of 37
+panied by greater implementation complexity and increased work?ow latency . The present 612
+study does not demonstrate superior ?nal decision accuracy for the multi-agent condi- 613
+tion, nor does it claim that either implementation has been fully validated for production 614
+deployment. 615
+Author Contributions: Conceptualization, A.R.; methodology , A.R.; software, A.R.; validation, A.R.; 616
+formal analysis, A.R.; investigation, A.R.; resources, A.R.; data curation, A.R.; writing?original draft 617
+preparation, A.R.; writing?review and editing, A.R.; visualization, A.R. The author has read and 618
+agreed to the published version of the manuscript. 619
+Funding: This research received no external funding. 620
+Institutional Review Board Statement: Not applicable. 621
+Informed Consent Statement: Not applicable. 622
+Acknowledgments: The author would like to thank Reza Golshan, University of Houston Informa- 623
+tion Technology (UIT), Houston, Texas, USA, for his guidance, valuable feedback, and continued 624
+support throughout this AI research. His technical insight and collaboration contributed signi?cantly 625
+to the development of this research. 626
+Code Availability: The source code and experimental implementation supporting this 627
+study are available from the corresponding author upon reasonable request. 628
+Con?icts of Interest: The author declares no con?ict of interest. 629
+Appendix A. Search Strategy and Inclusion Criteria 630
+Sources were sought from NIST, EUR-Lex, OECD, ENISA, ISACA, IEEE, ACM, 631
+Springer, IJCAI, FIRST, and of?cial LangSmith documentation. Queries combined terms 632
+such as multi-agent LLM, agent observability , hallucination, AI risk management, AI Act, 633
+and NVD. Inclusion required veri?able bibliographic identity (DOI or of?cial URL) and 634
+topical relevance. Exclusion removed unveri?able citations and non-authoritative posts 635
+used as primary evidence. The complete coded matrix is Supplementary File S1. 636
+Appendix B. Research Questions (Detail) 637
+RQ1?RQ6 are stated in Table 2. They address representation, measurement, failure lo- 638
+calization, case integration, interpretive standards alignment, and reproducible evaluation. 639
+Appendix C. Metric De?nitions and Formulations 640
+Section 9 provides the primary equations. Machine-readable stubs are in Supplemen- 641
+tary File S3 (Reproducibility_Package/metrics/metric_de?nitions.md). Weights ? , ? , ? and 642
+WRS weights are to be calibrated on future annotated corpora; no calibrated values are 643
+claimed here. 644
+Appendix D. Agent Roles, Instructions, and T ools 645
+Implemented LangChain/LangGraph agent roles: Inventory Agent, Evidence Agent, 646
+Governance Agent, and Human Review Gate. Instructions require citation of evidence 647
+IDs, explicit Data Unavailable behavior when ?elds are missing, and escalation on low 648
+con?dence or incomplete CVE/CVSS ?elds. Implemented tools include nvd_cve_lookup 649
+and evidence_?xture_loader. Full prompt templates are in Supplementary File S3. 650
+Appendix E. LangSmith T race Con?guration 651
+Environment variables: LANGSMITH_TRACING=true; LANGSMITH_API_KEY; 652
+LANGSMITH_PROJECT=semantic-tracing-shadowai. Tag each run with agent_role, 653
+
+--- PAGE 34 ---
+33 of 37
+hop_index, policy_id, and scenario_id. See of?cial LangSmith tracing documentation 654
+and Supplementary File S3 for the environment template. 655
+Appendix F . Evaluation Rubric 656
+Coders score each hop for: constraint preservation (0?2), evidence support (0?2), tool 657
+appropriateness (0?2), contradiction absence (0?2), and escalation appropriateness (0?2). 658
+Disagreements are adjudicated by a third coder before metric derivation. 659
+Appendix G. Governance Control Mapping (Extended) 660
+Table 10 and Figure 29 provide the core mapping. Extended notes aligning Mea- 661
+sure/Govern, logging/transparency , and human oversight expectations appear with the 662
+interpretive disclaimer that mappings are not certi?cation. 663
+Appendix H. Framework Alignment Notes 664
+NIST AI RMF (Govern/Map/Measure/Manage); NIST AI 600-1 generative risks; 665
+NIST CSF 2.0 Govern; ISACA lifecycle/audit orientation; EU AI Act transparency and 666
+human-oversight expectations; ENISA threat context; OECD accountability/explainability; 667
+IEEE 7000 value traceability . Alignments are research interpretations. 668
+Appendix I. Ethical Considerations and Data Management 669
+Survey participation is voluntary; no deception; optional contact. Avoid collecting 670
+secrets or credentials in traces; redact proprietary prompts/outputs; comply with orga- 671
+nizational data policies and applicable privacy law. Store survey data separately from 672
+traces; retain LangSmith exports under access control; publish only redacted examples; 673
+keep References_V eri?cation.xlsx as the citation audit trail. 674
+Appendix J. Prototype Limitations and Application Screenshot 675
+SHADOWAI-RISK is an academic prototype; live ?elds depend on NVD availability . 676
+The multi-agent semantic-tracing extension is implemented locally but is not integrated into 677
+the production UI. Executive reporting requires completed refresh. A homepage capture 678
+is stored in the project screenshots/ folder and may be treated as Supplementary File S5 679
+visual material. 680
+Figure J1. SHADOWAI-RISK live academic research prototype homepage (supplementary visual;
+not part of the main Figure 1?13 sequence).
+
+--- PAGE 35 ---
+34 of 37
+Appendix Figure J1 shows the SHADOWAI-RISK live academic research prototype 681
+homepage. 682
+Appendix K. Evaluation Scenarios 683
+S1 Shadow AI discovery; S2 incomplete evidence; S3 con?icting advice; S4 tool- 684
+permission breach. The ?ve controlled prototype scenarios reported in Section 10.3 were 685
+executed locally . Additional large-scale scenarios and repetitions remain pending. 686
+Appendix L. Supplementary Files 687
+? S1 ? Literature_Review_Matrix.xlsx (full literature matrix). 688
+? S2 ? Survey_Questionnaire.docx (full professional questionnaire). 689
+? S3 ? Reproducibility_Package/ (con?gs, prompts, metrics, synthetic trace). 690
+? S4 ? Semantic_Tracing_Figures.pptx (editable ?gure source). 691
+? S5 ? screenshots/ and future redacted trace exports. 692
+
+--- PAGE 36 ---
+35 of 37
+693
+1. National Institute of Standards and Technology (Tabassi, E.) (2023). Arti?cial Intelligence Risk 694
+Management Framework (AI RMF 1.0). NIST Trustworthy and Responsible AI, NIST AI 100-1. 695
+https://doi.org/10.6028/NIST.AI.100-1. 696
+2. European Parliament and Council of the European Union (2024). Regulation (EU) 2024/1689 697
+laying down harmonised rules on arti?cial intelligence (Arti?cial Intelligence Act). Of?cial 698
+Journal of the European Union, L series, 2024/1689. https://eur-lex.europa.eu/eli/reg/2024/1 699
+689/en. Accessed July 21, 2026. 700
+3. Organisation for Economic Co-operation and Development (OECD) (2019). Recommendation 701
+of the Council on Arti?cial Intelligence (OECD/LEGAL/0449). OECD Legal Instruments. 702
+https://legalinstruments.oecd.org/en/instruments/OECD-LEGAL-0449 . Accessed July 21, 703
+2026. 704
+4. European Union Agency for Cybersecurity (ENISA) (2020). Arti?cial Intelligence Cybersecurity 705
+Challenges: Threat Landscape for Arti?cial Intelligence. ENISA Reports. https://www.enisa. 706
+europa.eu/publications/artificial-intelligence-cybersecurity-challenges . Accessed July 21, 2026. 707
+5. Guo, T.; Chen, X.; Wang, Y .; Chang, R.; Pei, S.; Chawla, N. V .; Wiest, O.; Zhang, X. (2024). Large 708
+Language Model Based Multi-agents: A Survey of Progress and Challenges. Proceedings of the 709
+Thirty-Third International Joint Conference on Arti?cial Intelligence (IJCAI-24), Survey Track. 710
+https://doi.org/10.24963/ijcai.2024/890. 711
+6. Li, X.; Wang, S.; Zeng, S.; Wu, Y .; Yang, Y . (2024). A survey on LLM-based multi-agent 712
+systems: work?ow, infrastructure, and challenges. Vicinagearth, 1:9 (Springer Nature). https: 713
+//doi.org/10.1007/s44336-024-00009-2 . 714
+7. Wang, L.; Ma, C.; Feng, X.; Zhang, Z.; Yang, H.; Zhang, J.; Chen, Z.; Tang, J.; Chen, X.; Lin, Y .; 715
+Zhao, W. X.; Wei, Z.; Wen, J. (2024). A Survey on Large Language Model based Autonomous 716
+Agents. Frontiers of Computer Science, 18:186345 (Springer). https://doi.org/10.1007/s11704 717
+-024-40231-1 . 718
+8. Park, J. S.; O?Brien, J. C.; Cai, C. J.; Morris, M. R.; Liang, P .; Bernstein, M. S. (2023). Generative 719
+Agents: Interactive Simulacra of Human Behavior. Proceedings of the 36th Annual ACM 720
+Symposium on User Interface Software and Technology (UIST ?23). https://doi.org/10.1145/35 721
+86183.3606763. 722
+9. Wooldridge, M. (2009). An Introduction to MultiAgent Systems (2nd ed.). John Wiley & Sons. 723
+https://www.wiley .com/en-us/An+Introduction+to+MultiAgent+Systems%2C+2nd+Editi 724
+on-p-9780470519462 . Accessed July 21, 2026. 725
+10. Liu, N. F.; Lin, K.; Hewitt, J.; Paranjape, A.; Bevilacqua, M.; Petroni, F.; Liang, P . (2024). Lost 726
+in the Middle: How Language Models Use Long Contexts. Transactions of the Association for 727
+Computational Linguistics, 12:157?173. https://doi.org/10.1162/tacl_a_00638. 728
+11. Li, G.; Hammoud, H. A. A. K.; Itani, H.; Khizbullin, D.; Ghanem, B. (2023). CAMEL: Commu- 729
+nicative Agents for ?Mind? Exploration of Large Language Model Society . Advances in Neural 730
+Information Processing Systems (NeurIPS 2023). https://doi.org/10.48550/arXiv.2303.17760. 731
+12. LangChain / LangSmith Documentation (2025). LangSmith Observability and Tracing Docu- 732
+mentation (Tracing quickstart; Trace LangChain applications). Of?cial LangSmith documen- 733
+tation. https://docs.langchain.com/langsmith/observability- quickstart. Accessed July 21, 734
+2026. 735
+13. Xia, B.; Lu, Q.; Zhu, L.; et al. (2024). AgentOps: Enabling Observability of LLM Agents. arXiv 736
+preprint arXiv:2411.05285. https://doi.org/10.48550/arXiv.2411.05285. 737
+14. European Union Agency for Cybersecurity (ENISA) (2025). ENISA Threat Landscape 2025. 738
+ENISA Reports. https://www.enisa.europa.eu/publications/enisa-thre at-landscape-2025 . 739
+Accessed July 21, 2026. 740
+15. Silic, M.; Back, A. (2014). Shadow IT ? A view from behind the curtain. Computers & Security , 741
+45: 274?283. https://doi.org/10.1016/j.cose.2014.06.007. 742
+16. Autio, C.; Schwartz, R.; Dunietz, J.; Jain, S.; Stanley , M.; Tabassi, E.; Hall, P .; Roberts, K. (2024). 743
+Arti?cial Intelligence Risk Management Framework: Generative Arti?cial Intelligence Pro?le. 744
+NIST Trustworthy and Responsible AI, NIST AI 600-1. https://doi.org/10.6028/NIST.AI.600-1. 745
+
+--- PAGE 37 ---
+36 of 37
+17. High-Level Expert Group on Arti?cial Intelligence (2019). Ethics Guidelines for Trustworthy AI. 746
+European Commission. https://digital-strategy.ec.europa.eu/en/library/ethics-guidelines-t 747
+rustworthy-ai. Accessed 2026-07-22. 748
+18. ISACA (2024). Arti?cial Intelligence Governance Brief. ISACA professional guidance. https: 749
+//www.isaca.org/resources/ebook/arti?cial-intelligence-governance-brief. Accessed July 21, 750
+2026. 751
+19. ISACA (2025). Governing AI Across its Lifecycle: A Framework for Risk Practitioners. ISACA 752
+toolkit / risk practitioner guidance. https://www.isaca.org/resources/toolkits/governing-ai- 753
+across-its-lifecycle-a-framework-for-risk-practitioners . Accessed July 21, 2026. 754
+20. Rah, A. (2026). SHADOWAI-RISK: Enterprise AI Governance and Risk Intelligence (live research 755
+prototype) [Live academic research prototype / software artifact]. University of Houston. 756
+https://shadowai-risk.vercel.app/. Accessed 2026-07-22. 757
+21. Cemri, M.; Pan, M. Z.; Yang, S.; Agrawal, L. A.; Chopra, B.; Tiwari, R.; Keutzer, K.; 758
+Parameswaran, A.; Klein, D.; Ramchandran, K.; Zaharia, M.; Gonzalez, J. E.; Stoica, I. (2025). 759
+Why Do Multi-Agent LLM Systems Fail? Advances in Neural Information Processing Systems 760
+(NeurIPS 2025), Datasets and Benchmarks Track. https://doi.org/10.48550/arXiv.2503.13657. 761
+22. Rah, A. (2026). Agentic and Multi-agent Systems: A Systematic Review of Tool Use, Benchmarks, 762
+and Governance. Research Square preprint. https://doi.org/10.21203/rs.3.rs-9839978/v1. 763
+23. Hong, S.; Zhuge, M.; Chen, J.; Zheng, X.; Cheng, Y .; Zhang, C.; Wang, J.; Wang, Z.; Yau, S. K. 764
+S.; Lin, Z.; Zhou, L.; Ran, C.; Xiao, L.; Wu, C.; Schmidhuber, J. (2024). MetaGPT: Meta Pro- 765
+gramming for a Multi-Agent Collaborative Framework. International Conference on Learning 766
+Representations (ICLR 2024). https://doi.org/10.48550/arXiv.2308.00352. 767
+24. Liu, X.; Yu, H.; Zhang, H.; Xu, Y .; Lei, X.; Lai, H.; Gu, Y .; Ding, H.; Men, K.; Yang, K.; Zhang, S.; 768
+Deng, X.; Zeng, A.; Du, Z.; Zhang, C.; Shen, S.; Zhang, T.; Su, Y .; Sun, H.; Huang, M.; Dong, Y .; 769
+Tang, J. (2024). AgentBench: Evaluating LLMs as Agents. International Conference on Learning 770
+Representations (ICLR 2024). https://doi.org/10.48550/arXiv.2308.03688. 771
+25. Ji, Z.; Lee, N.; Frieske, R.; Yu, T.; Su, D.; Xu, Y .; Ishii, E.; Bang, Y . J.; Madotto, A.; Fung, P . (2023). 772
+Survey of Hallucination in Natural Language Generation. ACM Computing Surveys, 55(12). 773
+https://doi.org/10.1145/3571730. 774
+26. Maynez, J.; Narayan, S.; Bohnet, B.; McDonald, R. (2020). On Faithfulness and Factuality in 775
+Abstractive Summarization. Proceedings of the 58th Annual Meeting of the Association for 776
+Computational Linguistics (ACL 2020), 1906?1919. https://doi.org/10.18653/v1/2020.acl-mai 777
+n.173. 778
+27. Huang, L.; Yu, W.; Ma, W.; Zhong, W.; Feng, Z.; Wang, H.; Chen, Q.; Peng, W.; Feng, X.; 779
+Qin, B.; Liu, T. (2025). A Survey on Hallucination in Large Language Models: Principles, 780
+Taxonomy , Challenges, and Open Questions. ACM Transactions on Information Systems. 781
+https://doi.org/10.48550/arXiv.2311.05232. 782
+28. Du, Y .; Li, S.; Torralba, A.; Tenenbaum, J. B.; Mordatch, I. (2024). Improving Factual- 783
+ity and Reasoning in Language Models through Multiagent Debate. Proceedings of the 784
+41st International Conference on Machine Learning (ICML), PMLR 235:11733?11763. https: 785
+//proceedings.mlr.press/v235/du24e.html. 786
+29. Bender, E. M.; Gebru, T.; McMillan-Major, A.; Shmitchell, S. (2021). On the Dangers of Stochastic 787
+Parrots: Can Language Models Be Too Big? Proceedings of FAccT ?21. https://doi.org/10.1145/ 788
+3442188.3445922. 789
+30. LangChain / LangSmith Documentation (2025). Trace LangChain applications (Python and 790
+JS/TS). Of?cial LangSmith documentation. https://docs.langchain.com/langsmith/trace-with- 791
+langchain. Accessed July 21, 2026. 792
+31. National Institute of Standards and Technology (2024). The NIST Cybersecurity Framework 793
+(CSF) 2.0. NIST CSWP 29. https://doi.org/10.6028/NIST.CSWP .29. 794
+32. IEEE Standards Association (2021). IEEE 7000-2021: IEEE Standard Model Process for Address- 795
+ing Ethical Concerns during System Design. IEEE Standards. https://doi.org/10.1109/IEEEST 796
+D.2021.9536679. 797
+33. ISO/IEC (2023). ISO/IEC 42001:2023 Information technology ? Arti?cial intelligence ? Man- 798
+agement system. ISO Standards. https://www.iso.org/standard/42001. Accessed 2026-07-22. 799
+
+--- PAGE 38 ---
+37 of 37
+34. Amershi, S.; Weld, D.; V orvoreanu, M.; Fourney , A.; Nushi, B.; Collisson, P .; Suh, J.; Iqbal, S.; 800
+Bennett, P . N.; Inkpen, K.; Teevan, J.; Kikin-Gil, R.; Horvitz, E. (2019). Guidelines for Human-AI 801
+Interaction. Proceedings of the 2019 CHI Conference on Human Factors in Computing Systems 802
+(CHI ?19). https://doi.org/10.1145/3290605.3300233. 803
+35. Yao, S.; Zhao, J.; Yu, D.; Du, N.; Shafran, I.; Narasimhan, K. R.; Cao, Y . (2023). ReAct: Syn- 804
+ergizing Reasoning and Acting in Language Models. International Conference on Learning 805
+Representations (ICLR 2023). https://doi.org/10.48550/arXiv.2210.03629. 806
+36. LangChain Documentation (2025). LangGraph Documentation. LangChain Docs. https: 807
+//langchain-ai.github.io/langgraph/. Accessed 2026-07-22. 808
+37. National Institute of Standards and Technology (NIST) (2026). National Vulnerability Database 809
+(NVD). NIST NVD. https://nvd.nist.gov/. Accessed July 21, 2026. 810
+38. FIRST.Org, Inc. (2019). Common Vulnerability Scoring System v3.1: Speci?cation Document. 811
+FIRST CVSS Special Interest Group. https://www.?rst.org/cvss/v3.1/speci?cation-document. 812
+Accessed July 21, 2026. 813
+39. CISA (2021). Known Exploited Vulnerabilities Catalog. CISA. https://www.cisa.gov/known-e 814
+xploited-vulnerabilities-catalog . Accessed 2026-07-22. 815
+40. MITRE (2024). Common Weakness Enumeration (CWE). MITRE. https://cwe.mitre.org/ . 816
+Accessed 2026-07-22. 817
+41. MITRE (2024). MITRE ATLAS: Adversarial Threat Landscape for Arti?cial-Intelligence Systems. 818
+MITRE. https://atlas.mitre.org/. Accessed 2026-07-22. 819
+42. Mialon, G.; Fourrier, C.; Swift, C.; Wolf, T.; LeCun, Y .; Scialom, T. (2023). GAIA: A Benchmark 820
+for General AI Assistants. arXiv preprint arXiv:2311.08700. https://doi.org/10.48550/arXiv.231 821
+1.08700. 822
+43. Rah, A. (2026). Governance, Human Resistance, and Cybersecurity Challenges in Digital 823
+Transformation. Zenodo. https://doi.org/10.5281/zenodo.20237672. 824
+44. ISACA (2024). Arti?cial Intelligence Audit Toolkit (control library / AI governance assessment 825
+guidance). ISACA AI resources. https://www.isaca.org/resources/arti?cial-intelligen ce. 826
+Accessed July 21, 2026. 827
+45. Rah, A.; Hahues, S. (2026). Retrieval-Augmented Generation (RAG), Generative AI, and Agentic 828
+AI Governance: An Integrated Enterprise Governance Prioritization Architecture. Research 829
+Square preprint. https://doi.org/10.21203/rs.3.rs-10012178/v1. 830
+46. Rah, A. (2026). A governance-oriented analytical research paper on digital transformation and 831
+cybersecurity . Research Square preprint. https://doi.org/10.21203/rs.3.rs-9734788/v1. 832
+47. ENISA (2021). Securing Machine Learning Algorithms. ENISA. https://www.enisa.europa.eu/ 833
+publications/securing-machine-learning-algorithms . Accessed 2026-07-22. 834
+48. CISA (2023). CISA Roadmap for Arti?cial Intelligence. CISA. https://www.cisa.gov/sites/def 835
+ault/files/2023-11/CISA-Roadmap-for-AI_508c.pdf . Accessed 2026-07-22. 836
+49. Rah, A. (2026). Enterprise Generative AI: A Systematic Review of Security Risks and Governance. 837
+SSRN Electronic Journal. https://doi.org/10.2139/ssrn.6869661. 838
+50. ISO/IEC (2023). ISO/IEC 23894:2023 Information technology ? Arti?cial intelligence ? Guid- 839
+ance on risk management. ISO Standards. https://www.iso.org/standard/77304.html . 840
+Accessed 2026-07-22. 841
+51. Schick, T.; Dwivedi-Yu, J.; Dess?, R.; Raileanu, R.; Lomeli, M.; Hambro, E.; Zettlemoyer, L.; 842
+Cancedda, N.; Scialom, T. (2023). Toolformer: Language Models Can Teach Themselves to Use 843
+Tools. Advances in Neural Information Processing Systems (NeurIPS). https://doi.org/10.485 844
+50/arXiv.2302.04761. 845
