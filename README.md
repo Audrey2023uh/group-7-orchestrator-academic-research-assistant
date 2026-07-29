@@ -1,5 +1,9 @@
 # Academic Research Assistant — Multi-Agent Failure Modes & Guardrails
 
+**Group 7 · Single-author submission · Audrey Rah**
+
+This repository is a complete solo submission. One developer designed the shared contract, implemented all six failure-mode guardrails, integrated them into one multi-agent system, measured before/after metrics, and wrote all interview stories. The folders named `student_1_loop` … `student_6_tokens` follow the assignment’s required directory labels for each failure mode; they are **not** contributions from six different people.
+
 ## Project overview
 
 Production-style multi-agent system that analyzes an academic preprint, runs twenty independent reviewer personas as isolated executions of a single Reviewer worker, validates structured outputs, and compiles a meta-analysis report. The graph is coordinator-driven with conditional routing, retry/rollback paths, and explicit termination—not a linear single-agent pipeline.
@@ -15,6 +19,66 @@ Local extract: `data/paper_extract.txt`
 
 ## Architecture
 
+One unified coordinator-driven system (not six separate projects). Failure-mode packages `student_1_*` … `student_6_*` document each guardrail; all six are wired into `main_system.py`.
+
+```mermaid
+flowchart TB
+  subgraph UNIFIED["Unified Multi-Agent System — main_system.py"]
+    direction TB
+
+    subgraph GLOBAL["Global Cross-Cutting Guardrails"]
+      direction LR
+      PRIV["G5 Privacy Redaction<br/>redact_for_telemetry()"]
+      CTX["G6 Context / Token Management<br/>manage_context()"]
+    end
+
+    C["Central Coordinator<br/>dynamic state routing"]
+
+    C -->|"route=analyze<br/>missing analysis_payload"| A
+    C -->|"route=review<br/>reviewer_index < 20"| B
+    C -->|"route=validate<br/>reviews complete"| V
+    C -->|"route=report<br/>is_validated"| R
+    C -->|"round_number >= max_rounds<br/>G1 loop termination"| P
+
+    A["Worker A: Analyzer<br/>G2 schema validate + 1 correction retry"]
+    B["Worker B: Actor / Independent Reviewer<br/>x20 isolated runs · G3 tool allowlist"]
+    V["Worker C: Validator<br/>G4 sanitization / invariants"]
+    R["Worker D: Reporter / Meta-Analyst"]
+    P["Partial Output Node<br/>graceful max-round stop"]
+
+    A -->|"return to coordinator<br/>+ redact + manage_context"| C
+    B -->|"return to coordinator<br/>+ redact + manage_context"| C
+    V -->|"accept → coordinator"| C
+    V -->|"rejection_flag<br/>validation failure"| RB
+
+    RB["Rollback / Retry Path<br/>round_number++ · re-route to Analyzer"]
+    RB -->|"self-correction retry<br/>if round_number < max_rounds"| C
+    RB -->|"retry budget exhausted"| P
+
+    R --> ENDN(["END"])
+    P --> ENDN
+  end
+
+  SHARED["Shared Contract: contract.py · AgentState"]
+  SHARED -.-> C
+  GLOBAL -.-> A
+  GLOBAL -.-> B
+  GLOBAL -.-> V
+  GLOBAL -.-> R
+  GLOBAL -.-> C
+```
+
+Rendered image: [`architecture_diagram.png`](architecture_diagram.png)
+
+| Guardrail | Where it sits in the unified graph |
+|-----------|--------------------------------------|
+| G1 Infinite-loop stop | Coordinator → Partial Output when `round_number >= max_rounds` |
+| G2 Silent/structural | Worker A schema validation + one correction retry |
+| G3 Rogue tools | Worker B allowlist middleware |
+| G4 Cascade | Worker C sanitization; rejection → rollback |
+| G5 Privacy | Global redaction on telemetry events |
+| G6 Tokens | Global `manage_context` on message history |
+
 ```
 Coordinator
   ├─ Worker A: Analyzer
@@ -23,7 +87,8 @@ Coordinator
   └─ Worker D: Reporter / Meta-Analyst
 ```
 
-Shared contract: `contract.py` (`AgentState`, `AnalysisPayload`, `ReviewSchema`).
+Shared contract: `contract.py` (`AgentState`, `AnalysisPayload`, `ReviewSchema`).  
+All six guardrails are active inside `main_system.py` (via `agents/guardrails.py` and `tools/tool_runtime.py`).
 
 ## Installation
 
@@ -74,7 +139,7 @@ Produces:
 pytest -q
 ```
 
-Each `student_*/test_failure.py` reproduces its failure mode with the guardrail disabled (safely mocked) and writes measured `metrics.md`.
+Each `student_*/test_failure.py` is a failure-mode package authored by the same developer. It reproduces that mode with the guardrail disabled (safely mocked) and writes measured `metrics.md`.
 
 ## Output locations
 
@@ -85,14 +150,14 @@ Each `student_*/test_failure.py` reproduces its failure mode with the guardrail 
 | `outputs/final_report.md` | End-to-end run report |
 | `traces/` | Redacted telemetry events |
 
-## Guardrail summary
+## Guardrail summary (all implemented by one author)
 
-1. **Loop** — `round_number >= 5` → partial output  
-2. **Silent structure** — Pydantic schema + one correction retry  
-3. **Rogue tools** — hardcoded allowlist + `InvalidToolCallException`  
-4. **Cascade** — sanitization node + rejection/rollback  
-5. **Privacy** — centralized redaction before traces  
-6. **Tokens** — context prune/summarize under soft limit  
+1. **Loop** (`student_1_loop`) — `round_number >= 5` → partial output  
+2. **Silent structure** (`student_2_silent`) — Pydantic schema + one correction retry  
+3. **Rogue tools** (`student_3_rogue`) — hardcoded allowlist + `InvalidToolCallException`  
+4. **Cascade** (`student_4_cascade`) — sanitization node + rejection/rollback  
+5. **Privacy** (`student_5_trace`) — centralized redaction before traces  
+6. **Tokens** (`student_6_tokens`) — context prune/summarize under soft limit  
 
 ## Repository structure
 
@@ -106,7 +171,7 @@ data/
 outputs/
 traces/
 tests/
-student_1_loop/ … student_6_tokens/
+student_1_loop/ … student_6_tokens/   # required failure-mode package names
 ```
 
 ## Safety statement
@@ -115,7 +180,7 @@ All destructive or external side effects are mocked. Unauthorized tools never ex
 
 ## Limitations
 
-- Individual 2-minute failure videos and the team 5-minute demo must be recorded manually.
-- Live Ollama quality depends on the local model; CI/default path uses deterministic builders.
+- Demo video recording(s) for the six failure modes and the integrated system must be filmed manually by the author.
+- Live Ollama quality depends on the local model; default path uses deterministic builders.
 - LangSmith tracing is optional and disabled by default.
 - Paper text is loaded from a local extract to avoid repeated remote downloads.

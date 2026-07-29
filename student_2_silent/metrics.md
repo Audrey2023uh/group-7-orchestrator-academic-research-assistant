@@ -1,5 +1,7 @@
 # Metrics — Silent Hallucination / Structural Guardrail
 
+**Author: Audrey Rah (Group 7) · Single-author failure-mode package `student_2_silent`**
+
 Measured by `test_failure.py` over 5 synthetic analyzer payloads.
 
 | Metric | Value |

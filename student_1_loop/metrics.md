@@ -1,5 +1,7 @@
 # Metrics — Infinite Graph Loop Guardrail
 
+**Author: Audrey Rah (Group 7) · Single-author failure-mode package `student_1_loop`**
+
 Measured by `test_failure.py` on this machine (deterministic simulation).
 
 | Metric | Before (guardrail OFF) | After (guardrail ON) |
@@ -7,7 +9,7 @@ Measured by `test_failure.py` on this machine (deterministic simulation).
 | iterations | 100 | 6 |
 | round_number at stop | 100 | 5 |
 | approx tokens burned | 12000 | 720 |
-| latency (ms) | 0.004 | 0.001 |
+| latency (ms) | 0.003 | 0.002 |
 | tokens saved | — | 11280 |
 | latency reduced (ms) | — | 0.002 |
 

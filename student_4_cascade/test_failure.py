@@ -56,6 +56,8 @@ def test_write_metrics():
     path.write_text(
         f"""# Metrics — Downstream Cascade Guardrail
 
+**Author: Audrey Rah (Group 7) · Single-author failure-mode package `student_4_cascade`**
+
 Measured by `test_failure.py` over {trials} malformed-state trials.
 
 | Metric | Value |

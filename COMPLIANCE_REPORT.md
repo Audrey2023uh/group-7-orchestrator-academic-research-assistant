@@ -1,31 +1,58 @@
 # Final Compliance Report
 
-Generated after re-checking Instructiones-derived `REQUIREMENTS_CHECKLIST.md` against the repository.
+**Group 7 · Single-author submission · Audrey Rah**
 
-## Executed verification
+Audit against Instructiones-derived requirements and the author’s solo-completion constraint. **Full compliance is not claimed** while video deliverables remain absent.
+
+## Authorship consistency
 
 | Check | Result |
 |-------|--------|
-| pytest suite | **20 passed** |
-| Full graph `python main_system.py` | terminated=True, reviews=20, validated=True, partial=False |
-| Review files present | `outputs/reviews/reviewer_01.md` … `reviewer_20.md` |
-| Meta-analysis | `outputs/meta_analysis.md` |
-| Final report | `outputs/final_report.md` |
-| Six student folders with snippet/test/metrics/interview_story | Present; metrics written by tests |
-| Root required files | README, DESIGN_DOCS, INTERVIEW_STORIES, contract, main_system, requirements, .env.example, .gitignore |
-| Branding scrub search | See below |
-| Secrets | `.env` gitignored; only `.env.example` present |
+| Documentation states one developer implemented all six guardrails | Yes — README, DESIGN_DOCS, INTERVIEW_STORIES, GRADING_CHECKLIST, this report |
+| `student_*` folders treated as failure-mode packages (not six people) | Yes |
+| Interview stories use first-person single-author voice | Yes |
 
-## Branding scrub
+## Required root deliverables
 
-Searched repository source/docs for disallowed product/assistant branding strings. Technology names that appear only as part of the **target paper title** (framework names in the preprint) are retained as factual content about the paper under review.
+| Item | Exists |
+|------|--------|
+| `README.md` | Yes |
+| `DESIGN_DOCS.md` | Yes |
+| `INTERVIEW_STORIES.md` | Yes |
+| `contract.py` | Yes |
+| `main_system.py` | Yes |
+| `requirements.txt` | Yes |
+| `.env.example` | Yes |
+| `.gitignore` | Yes |
 
-## Gaps that cannot be completed here
+## Required failure-mode packages (`student_1` … `student_6`)
 
-1. **Individual 2-minute failure videos** — require screen recording + voiceover by students.
-2. **Team 5-minute demo video** — same.
-3. **GitHub remote push** — depends on local `gh` authentication; see commands if auth missing.
-4. **Live Ollama linguistic variety** — optional; default path is deterministic/offline for reproducible grading evidence.
+| Package | snippet.py | test_failure.py | metrics.md | interview_story.md |
+|---------|------------|-----------------|------------|--------------------|
+| `student_1_loop` | Yes | Yes | Yes | Yes |
+| `student_2_silent` | Yes | Yes | Yes | Yes |
+| `student_3_rogue` | Yes | Yes | Yes | Yes |
+| `student_4_cascade` | Yes | Yes | Yes | Yes |
+| `student_5_trace` | Yes | Yes | Yes | Yes |
+| `student_6_tokens` | Yes | Yes | Yes | Yes |
+
+## Integrated system checks
+
+| Check | Result |
+|-------|--------|
+| All six guardrails wired in `main_system.py` / shared modules | Yes |
+| Coordinator + 4 workers, dynamic routing, retries, termination | Yes |
+| pytest suite | Previously verified: 20 passed (re-run after doc edits recommended) |
+| Full graph outputs | `outputs/reviews/reviewer_01.md` … `20.md`, `meta_analysis.md`, `final_report.md` present |
+| Dangerous actions mocked | Yes |
+| No paid API required | Yes |
+
+## Missing / incomplete deliverables (do not treat as complete)
+
+1. **Failure-mode demo video(s)** — assignment asks for recorded demos; none are in this repository.
+2. **Integrated system demo video** — not in this repository.
+3. **GitHub remote publication** — local git exists; `gh` was not available for authenticated push at build time.
+4. **Live Ollama path** — optional; default is deterministic offline (acceptable for reproducibility, but not a live-model demo).
 
 ## Safety confirmation
 
@@ -34,6 +61,7 @@ Searched repository source/docs for disallowed product/assistant branding string
 - Telemetry redaction active before trace write.
 - Cookie policy documented: Necessary/Essential only.
 
-## Conclusion
+## Verdict
 
-The repository is organized to satisfy available rubric items for code, metrics, stories, contract, integrated graph, and design docs. Video deliverables and authenticated GitHub publication remain human-operated steps. No guaranteed grade is claimed.
+**Code + documentation package for a single-author (Group 7, Audrey Rah) submission is present and internally consistent.**  
+**Assignment is not fully complete** until the author records and submits the required video evidence (and publishes the repo if the course requires a GitHub URL). No guaranteed grade is claimed.

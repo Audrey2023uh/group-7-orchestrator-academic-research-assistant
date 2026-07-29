@@ -49,6 +49,8 @@ def test_write_metrics():
     path.write_text(
         f"""# Metrics — Silent Hallucination / Structural Guardrail
 
+**Author: Audrey Rah (Group 7) · Single-author failure-mode package `student_2_silent`**
+
 Measured by `test_failure.py` over {len(samples)} synthetic analyzer payloads.
 
 | Metric | Value |

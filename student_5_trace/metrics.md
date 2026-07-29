@@ -1,5 +1,7 @@
 # Metrics — Telemetry Privacy Redaction Guardrail
 
+**Author: Audrey Rah (Group 7) · Single-author failure-mode package `student_5_trace`**
+
 Measured by `test_failure.py` over 4 synthetic trace events.
 
 | Metric | Value |

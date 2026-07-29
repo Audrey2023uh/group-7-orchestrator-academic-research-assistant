@@ -45,6 +45,8 @@ def test_write_metrics():
     path.write_text(
         f"""# Metrics — Context Window / Token Burn Guardrail
 
+**Author: Audrey Rah (Group 7) · Single-author failure-mode package `student_6_tokens`**
+
 Measured by `test_failure.py` simulating 20 reviewer message accumulations.
 
 | Metric | Before | After |

@@ -1,5 +1,7 @@
 # Metrics — Downstream Cascade Guardrail
 
+**Author: Audrey Rah (Group 7) · Single-author failure-mode package `student_4_cascade`**
+
 Measured by `test_failure.py` over 20 malformed-state trials.
 
 | Metric | Value |

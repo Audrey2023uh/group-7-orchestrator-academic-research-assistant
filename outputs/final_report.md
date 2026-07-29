@@ -1,5 +1,9 @@
 # Final Report — Academic Research Assistant
 
+**Group 7 · Author: Audrey Rah (single-author submission)**
+
+All six guardrails in this run were implemented and integrated by the same developer.
+
 ## Workflow completed
 Literature load → Paper analysis → 20 isolated reviews → Validation → Meta-analysis
 

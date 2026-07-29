@@ -1,7 +1,8 @@
 # Requirements Checklist (Source of Truth: Instructiones)
 
-Derived from complete reading of all PDFs in `Instructiones/` before implementation.
-Assignment wins over any conflicting informal instructions.
+**Group 7 · Single-author submission · Audrey Rah**
+
+Derived from Instructiones PDFs. Folder names `student_1_*` … `student_6_*` are required failure-mode package labels completed by one developer—not six contributors.
 
 ## Core learning / architecture
 
@@ -14,17 +15,18 @@ Assignment wins over any conflicting informal instructions.
 | A5 | Python + LangGraph + LangChain Core + Pydantic | done |
 | A6 | LangSmith optional free-tier only; no paid APIs required | done |
 | A7 | All external destructive actions mocked | done |
+| A8 | Single author owns all six guardrails + integration | done |
 
 ## Contract-first
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| C1 | Commit `contract.py` BEFORE individual work | done |
+| C1 | Commit `contract.py` BEFORE individual work packages | done |
 | C2 | Frozen contract used by all nodes | done |
 
-## Six failure modes + guardrails
+## Six failure-mode packages (same author)
 
-| ID | Student | Status |
+| ID | Package | Status |
 |----|---------|--------|
 | F1 | student_1_loop | done |
 | F2 | student_2_silent | done |
@@ -37,8 +39,8 @@ Assignment wins over any conflicting informal instructions.
 
 | ID | Path | Status |
 |----|------|--------|
-| D1–D8 | README, DESIGN_DOCS, INTERVIEW_STORIES, contract, main_system, students, real metrics | done |
-| D9 | Videos | NOT AUTOMATABLE — human recording required |
+| D1–D8 | README, DESIGN_DOCS, INTERVIEW_STORIES, contract, main_system, six packages, real metrics | done |
+| D9 | Demo video(s) | MISSING — author must record |
 
 ## Academic workflow
 
@@ -47,8 +49,7 @@ Assignment wins over any conflicting informal instructions.
 | W1–W3 | Paper load, 20 isolated reviews, meta + final report | done |
 | W4 | Cookie: Necessary/Essential only | documented |
 
-## Gaps
+## Gaps (honest)
 
-- Individual 2-minute failure videos
-- Team 5-minute demo video
-- GitHub remote push requires `gh` install + auth
+- Author-recorded failure/system demo video(s)
+- GitHub remote push if course requires a URL (`gh` not installed at build time)

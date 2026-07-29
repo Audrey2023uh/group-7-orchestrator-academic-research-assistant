@@ -57,6 +57,8 @@ def test_write_metrics(tmp_path: Path = None):
     metrics_path = Path(__file__).resolve().parent / "metrics.md"
     body = f"""# Metrics — Infinite Graph Loop Guardrail
 
+**Author: Audrey Rah (Group 7) · Single-author failure-mode package `student_1_loop`**
+
 Measured by `test_failure.py` on this machine (deterministic simulation).
 
 | Metric | Before (guardrail OFF) | After (guardrail ON) |
