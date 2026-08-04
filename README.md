@@ -4,7 +4,7 @@
 
 ## Project Demonstration
 
-**5-Minute Technical Demonstration (Video):**
+**Technical Demonstration (Video):**
 
 https://drive.google.com/file/d/1Pvy0pseP0PAD5JEXifBJK0nBYUnrPXQ9/view?usp=sharing
 
