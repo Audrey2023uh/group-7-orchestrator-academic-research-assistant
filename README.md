@@ -8,6 +8,15 @@
 
 https://drive.google.com/file/d/1Pvy0pseP0PAD5JEXifBJK0nBYUnrPXQ9/view?usp=sharing
 
+**Technical Demonstration (Video):**
+
+- Student 1 (`student_1_loop`): https://drive.google.com/file/d/1PBKM_dhY5H0mRoFo6E27lv7hk72skAwL/view?usp=sharing
+- Student 2 (`student_2_silent`): https://drive.google.com/file/d/1QtqP2v1J7bhROvDV1C2P-a_kLbx91bdI/view?usp=sharing
+- Student 3 (`student_3_rogue`): https://drive.google.com/file/d/1_izBbCIiGDljTpDLxZdRr9j8NVbtjm-P/view?usp=sharing
+- Student 4 (`student_4_cascade`): https://drive.google.com/file/d/1T_POk1nXFSZIHScCXkIUxnxkFt9Iiub9/view?usp=sharing
+- Student 5 (`student_5_trace`): https://drive.google.com/file/d/1lzPSyxlsSj0FQ7gI04mjTsv5RwWJLRqn/view?usp=sharing
+- Student 6 (`student_6_tokens`): https://drive.google.com/file/d/1yUZ8YWx2dx8qnjqDt0497bRkMDrf00od/view?usp=sharing
+
 ---
 
 This repository is a complete solo submission. One developer designed the shared contract, implemented all six failure-mode guardrails, integrated them into one multi-agent system, measured before/after metrics, and wrote all interview stories. The folders named `student_1_loop` … `student_6_tokens` follow the assignment’s required directory labels for each failure mode; they are **not** contributions from six different people.
