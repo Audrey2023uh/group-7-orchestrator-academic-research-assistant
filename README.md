@@ -117,6 +117,10 @@ Each `student_*/test_failure.py` is a failure-mode package authored by the same 
 5. **Privacy** (`student_5_trace`) — centralized redaction before traces  
 6. **Tokens** (`student_6_tokens`) — context prune/summarize under soft limit  
 
+## Project documentation
+
+- [Summary metrics table (all six guardrails)](SUMMARY_METRICS.md) — single-page before/after table for the 5-minute team demonstration
+
 ## Repository structure
 
 ```
