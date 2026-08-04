@@ -19,53 +19,9 @@ Local extract: `data/paper_extract.txt`
 
 ## Architecture
 
-One unified coordinator-driven system (not six separate projects). Failure-mode packages `student_1_*` … `student_6_*` document each guardrail; all six are wired into `main_system.py`.
+One unified coordinator-driven system (not six separate projects). Failure-mode packages `student_1_*` through `student_6_*` document each guardrail; all six are integrated into `main_system.py`.
 
-```mermaid
-flowchart TB
-  subgraph UNIFIED["Unified Multi-Agent System — main_system.py"]
-    direction TB
-
-    subgraph GLOBAL["Global Cross-Cutting Guardrails"]
-      direction LR
-      PRIV["G5 Privacy Redaction<br/>redact_for_telemetry()"]
-      CTX["G6 Context / Token Management<br/>manage_context()"]
-    end
-
-    C["Central Coordinator<br/>dynamic state routing"]
-
-    C -->|"route=analyze<br/>missing analysis_payload"| A
-    C -->|"route=review<br/>reviewer_index < 20"| B
-    C -->|"route=validate<br/>reviews complete"| V
-    C -->|"route=report<br/>is_validated"| R
-    C -->|"round_number >= max_rounds<br/>G1 loop termination"| P
-
-    A["Worker A: Analyzer<br/>G2 schema validate + 1 correction retry"]
-    B["Worker B: Actor / Independent Reviewer<br/>x20 isolated runs · G3 tool allowlist"]
-    V["Worker C: Validator<br/>G4 sanitization / invariants"]
-    R["Worker D: Reporter / Meta-Analyst"]
-    P["Partial Output Node<br/>graceful max-round stop"]
-
-    A -->|"return to coordinator<br/>+ redact + manage_context"| C
-    B -->|"return to coordinator<br/>+ redact + manage_context"| C
-    V -->|"accept → coordinator"| C
-    V -->|"rejection_flag<br/>validation failure"| RB
-
-    RB["Rollback / Retry Path<br/>round_number++ · re-route to Analyzer"]
-    RB -->|"self-correction retry<br/>if round_number < max_rounds"| C
-    RB -->|"retry budget exhausted"| P
-
-    R --> ENDN(["END"])
-    P --> ENDN
-  end
-
-  SHARED["Shared Contract: contract.py · AgentState"]
-  SHARED -.-> C
-  GLOBAL -.-> A
-  GLOBAL -.-> B
-  GLOBAL -.-> V
-  GLOBAL -.-> R
-  GLOBAL -.-> C
+![Unified Multi-Agent System Architecture](architecture_diagram.png)
 ```
 
 Rendered image: [`architecture_diagram.png`](architecture_diagram.png)
