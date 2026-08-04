@@ -2,9 +2,17 @@
 
 **Group 7 · Single-author submission · Audrey Rah**
 
+## Project Demonstration
+
+**5-Minute Technical Demonstration (Video):**
+
+https://drive.google.com/file/d/1Pvy0pseP0PAD5JEXifBJK0nBYUnrPXQ9/view?usp=sharing
+
+---
+
 This repository is a complete solo submission. One developer designed the shared contract, implemented all six failure-mode guardrails, integrated them into one multi-agent system, measured before/after metrics, and wrote all interview stories. The folders named `student_1_loop` … `student_6_tokens` follow the assignment’s required directory labels for each failure mode; they are **not** contributions from six different people.
 
-## Project overview
+## Project Overview
 
 Production-style multi-agent system that analyzes an academic preprint, runs twenty independent reviewer personas as isolated executions of a single Reviewer worker, validates structured outputs, and compiles a meta-analysis report. The graph is coordinator-driven with conditional routing, retry/rollback paths, and explicit termination—not a linear single-agent pipeline.
 
