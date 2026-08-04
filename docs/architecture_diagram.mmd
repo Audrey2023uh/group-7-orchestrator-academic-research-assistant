@@ -1,43 +1,45 @@
-%% Architecture diagram source — matches main_system.py
-%% One unified Academic Research Assistant — Group 7 · Audrey Rah
+%% Architecture diagram source — instructor topology + current implementation
+%% Group 7 · Audrey Rah · Academic Research Assistant
+%% Matches assignment: Coordinator + Worker A/B/C/D + loop/self-correction + Partial Output
 flowchart TB
-  subgraph UNIFIED["Unified Multi-Agent System - main_system.py"]
+  SHARED["Shared Contract: contract.py · AgentState"]
+
+  subgraph UNIFIED["Unified Multi-Agent System — main_system.py"]
     direction TB
 
     subgraph GLOBAL["Global Cross-Cutting Guardrails"]
       direction LR
-      PRIV["G5 Privacy Redaction - redact_for_telemetry"]
-      CTX["G6 Context Token Management - manage_context"]
+      PRIV["G5 Privacy Redaction<br/>redact_for_telemetry()"]
+      CTX["G6 Context / Token Management<br/>manage_context()"]
     end
 
-    C["Central Coordinator - dynamic state routing"]
+    C["0. Central Coordinator<br/>Dynamic State Routing"]
 
-    C -->|"route=analyze missing analysis_payload"| A
-    C -->|"route=review reviewer_index under 20"| B
-    C -->|"route=validate reviews complete"| V
-    C -->|"route=report is_validated"| R
-    C -->|"G1 loop stop round_number at max_rounds"| P
+    C -->|"route=analyze<br/>missing analysis_payload"| A
+    C -->|"route=review<br/>reviewer_index &lt; 20"| B
+    C -->|"route=validate<br/>reviews complete"| V
+    C -->|"route=report<br/>is_validated"| R
+    C -->|"round_number &gt;= max_rounds<br/>G1 loop termination"| P
 
-    A["Worker A: Analyzer - G2 schema validate plus 1 correction retry"]
-    B["Worker B: Actor Independent Reviewer - x20 isolated - G3 tool allowlist"]
-    V["Worker C: Validator - G4 sanitization invariants"]
-    R["Worker D: Reporter Meta-Analyst"]
-    P["Partial Output Node - graceful max-round stop"]
+    A["1. Worker A: Analyzer<br/>G2 Offline Structured-Output Double<br/>+ Schema Validation + 1 Correction Retry"]
+    B["2. Worker B: Actor<br/>Independent Reviewer ×20 isolated<br/>G3 Tool Allowlist"]
+    V["3. Worker C: Validator<br/>G4 State Sanitization + Invariants<br/>+ rejection_flag"]
+    R["4. Worker D: Reporter / Meta-Analyst"]
+    P["Partial Output Node<br/>Graceful Max-Round Stop G1"]
 
-    A -->|"return to coordinator plus redact plus manage_context"| C
-    B -->|"return to coordinator plus redact plus manage_context"| C
-    V -->|"accept to coordinator"| C
-    V -->|"rejection_flag validation failure"| RB
+    A -->|"return + redact + manage_context"| C
+    B -->|"return + redact + manage_context"| C
+    V -->|"accept → Coordinator"| C
+    V -->|"rejection_flag"| RB
 
-    RB["Rollback Retry Path - round_number increment - re-route to Analyzer"]
-    RB -->|"self-correction retry if under max_rounds"| C
+    RB["Loop / Self-Correction<br/>round_number++ · re-route to Analyzer<br/>routing logic inside Coordinator<br/>not a separate graph node"]
+    RB -->|"self-correction retry<br/>if round_number &lt; max_rounds"| C
     RB -->|"retry budget exhausted"| P
 
     R --> ENDN(["END"])
     P --> ENDN
   end
 
-  SHARED["Shared Contract contract.py AgentState"]
   SHARED -.-> C
   GLOBAL -.-> A
   GLOBAL -.-> B

@@ -17,6 +17,21 @@ from contract import (
 )
 from tools.tool_runtime import validate_and_execute
 
+# Worker A (Student 2): assignment asks for .with_structured_output(ContractSchema).
+# Offline test double — no Ollama/OpenAI; same schema + ValidationError + one-retry behavior.
+ContractSchema = AnalysisPayload
+
+
+class OfflineStructuredOutputDouble:
+    """Offline test double for LangChain `llm.with_structured_output(schema)`."""
+
+    def with_structured_output(self, schema):
+        self._schema = schema
+        return self
+
+    def parse(self, payload: Dict[str, Any]):
+        return self._schema.model_validate(payload)
+
 
 def loop_guard_should_terminate(round_number: int, max_rounds: int = MAX_ROUNDS) -> bool:
     return round_number >= max_rounds
@@ -29,8 +44,9 @@ def validate_analysis_payload(
     schema_retry_used: bool,
 ) -> Tuple[Dict[str, Any], bool, str | None]:
     """Return (payload, schema_retry_used, error)."""
+    structured = OfflineStructuredOutputDouble().with_structured_output(ContractSchema)
     try:
-        model = AnalysisPayload.model_validate(payload)
+        model = structured.parse(payload)
         return model.model_dump(), schema_retry_used, None
     except ValidationError as exc:
         if allow_retry and not schema_retry_used:
@@ -42,7 +58,9 @@ def validate_analysis_payload(
                 if req not in sections:
                     corrected.setdefault("sections_covered", []).append(req)
             try:
-                model = AnalysisPayload.model_validate(corrected)
+                model = OfflineStructuredOutputDouble().with_structured_output(ContractSchema).parse(
+                    corrected
+                )
                 return model.model_dump(), True, None
             except ValidationError as exc2:
                 return payload, True, str(exc2)

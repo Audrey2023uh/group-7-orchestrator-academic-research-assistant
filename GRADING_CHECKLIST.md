@@ -6,7 +6,7 @@ Maps assignment rubric items to implementation evidence. Folder names `student_*
 
 | Requirement | Pts | Implementation location | Test / evidence | Output file | Status |
 |-------------|-----|-------------------------|-----------------|-------------|--------|
-| Failure demo video | 20 | Failure scripts in each `student_*/test_failure.py` | Run pytest with guardrail off/on | Recorded video(s) **not in repo** — author must film manually | MISSING |
+| Failure demo video | 20 | Failure scripts in each `student_*/test_failure.py` | Run pytest with guardrail off/on | ✅ Individual videos completed (`Final_student1..6_video.mp4` in each `student_*` folder; ~2 minutes each) | PRESENT |
 | Guardrail code (code-based) | 20 | `main_system.py` + `agents/guardrails.py` + all six `student_*/snippet.py` | `pytest` suite | snippets | PRESENT |
 | Quantitative metrics | 15 | All six `student_*/metrics.md` written by tests | Measured before/after tables | `student_*/metrics.md` | PRESENT |
 | Interview story (~150 words) | 15 | All six `student_*/interview_story.md` + `INTERVIEW_STORIES.md` | First-person technical stories by Audrey Rah | those files | PRESENT |
@@ -22,4 +22,6 @@ Maps assignment rubric items to implementation evidence. Folder names `student_*
 
 ## Demo video (author-recorded)
 
-Not in the repository. Suggested outline for the solo demo: architecture → disable one guardrail → show failure metrics → enable guardrail → show recovery → show 20 reviews + meta-analysis → briefly walk all six packages.
+✅ Individual videos completed. All six approximately two-minute failure/success demonstration videos are included in the corresponding `student_*` folders (`Final_student1_video.mp4` … `Final_student6_video.mp4`).
+
+Team integrated 5-minute demo video: not yet in the repository (record separately if still outstanding).

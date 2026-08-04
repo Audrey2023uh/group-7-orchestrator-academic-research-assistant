@@ -2,10 +2,10 @@
 
 Paper: Semantic Tracing in LLM-Based Multi-Agent Systems Using LangChain, LangGraph, and LangSmith for AI Governance
 Paper ID: rs-10485157
-Validated reviews: 20
+Validated reviews: 3
 
 ## Recommendation tally
-- Major revision: 20
+- Major revision: 3
 
 ## Consensus themes
 - Major revision is the dominant recommendation posture.

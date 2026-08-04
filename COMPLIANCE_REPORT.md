@@ -2,7 +2,7 @@
 
 **Group 7 · Single-author submission · Audrey Rah**
 
-Audit against Instructiones-derived requirements and the author’s solo-completion constraint. **Full compliance is not claimed** while video deliverables remain absent.
+Audit against Instructiones-derived requirements and the author’s solo-completion constraint. ✅ Individual videos completed. Full compliance is not claimed while the integrated 5-minute team demo video (if still outstanding) remains absent.
 
 ## Authorship consistency
 
@@ -47,12 +47,22 @@ Audit against Instructiones-derived requirements and the author’s solo-complet
 | Dangerous actions mocked | Yes |
 | No paid API required | Yes |
 
+## Individual failure-mode videos
+
+✅ Individual videos completed. All six approximately two-minute demonstration videos are present:
+
+- `student_1_loop/Final_student1_video.mp4`
+- `student_2_silent/Final_student2_video.mp4`
+- `student_3_rogue/Final_student3_video.mp4`
+- `student_4_cascade/Final_student4_video.mp4`
+- `student_5_trace/Final_student5_video.mp4`
+- `student_6_tokens/Final_student6_video.mp4`
+
 ## Missing / incomplete deliverables (do not treat as complete)
 
-1. **Failure-mode demo video(s)** — assignment asks for recorded demos; none are in this repository.
-2. **Integrated system demo video** — not in this repository.
-3. **GitHub remote publication** — local git exists; `gh` was not available for authenticated push at build time.
-4. **Live Ollama path** — optional; default is deterministic offline (acceptable for reproducibility, but not a live-model demo).
+1. **Integrated system demo video (5-minute team demo)** — not in this repository (if still outstanding).
+2. **GitHub remote publication** — local git exists; `gh` was not available for authenticated push at build time.
+3. **Live Ollama path** — optional; default is deterministic offline (acceptable for reproducibility, but not a live-model demo).
 
 ## Safety confirmation
 
@@ -64,4 +74,4 @@ Audit against Instructiones-derived requirements and the author’s solo-complet
 ## Verdict
 
 **Code + documentation package for a single-author (Group 7, Audrey Rah) submission is present and internally consistent.**  
-**Assignment is not fully complete** until the author records and submits the required video evidence (and publishes the repo if the course requires a GitHub URL). No guaranteed grade is claimed.
+✅ Individual videos completed. Remaining gap, if any: the integrated 5-minute team demo video and optional GitHub remote publication. No guaranteed grade is claimed.

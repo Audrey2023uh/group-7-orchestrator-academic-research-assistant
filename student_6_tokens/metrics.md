@@ -8,7 +8,7 @@ Measured by `test_failure.py` simulating 20 reviewer message accumulations.
 |--------|--------|-------|
 | approx token count | 12574 | 655 |
 | percentage reduction | — | 94.8% |
-| latency (ms, concatenate context) | 0.035 | 0.018 |
+| latency (ms, concatenate context) | 0.020 | 0.016 |
 | messages retained | 41 | 4 |
 
 Before: full tool outputs and prior reviews accumulated in message history.

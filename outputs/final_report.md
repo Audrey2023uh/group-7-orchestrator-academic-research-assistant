@@ -16,17 +16,17 @@ Literature load → Paper analysis → 20 isolated reviews → Validation → Me
 - Context token management
 
 ## Outputs
-- Reviews: outputs/reviews/reviewer_01.md … reviewer_20.md
+- Reviews: outputs/reviews/reviewer_01.md … reviewer_03.md
 - Meta-analysis: outputs/meta_analysis.md
 
 # Meta-Analysis of Independent Reviews
 
 Paper: Semantic Tracing in LLM-Based Multi-Agent Systems Using LangChain, LangGraph, and LangSmith for AI Governance
 Paper ID: rs-10485157
-Validated reviews: 20
+Validated reviews: 3
 
 ## Recommendation tally
-- Major revision: 20
+- Major revision: 3
 
 ## Consensus themes
 - Major revision is the dominant recommendation posture.

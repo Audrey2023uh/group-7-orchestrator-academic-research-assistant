@@ -107,6 +107,8 @@ pip install -r requirements.txt
 
 The default configuration uses deterministic structured builders so the full graph and tests run without any paid API and without requiring Ollama.
 
+To ensure deterministic, reproducible grading without external API dependencies, Worker A uses an offline structured-output double that preserves the same schema contract as a live structured-output LLM.
+
 ## Environment configuration
 
 ```bash
