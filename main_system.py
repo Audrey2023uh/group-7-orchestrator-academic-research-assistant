@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Iterator, Literal
 
 from dotenv import load_dotenv
 from langgraph.graph import END, StateGraph
@@ -122,10 +122,9 @@ def coordinator_node(state: AgentState) -> Dict[str, Any]:
     return updates
 
 
-def analyzer_node(state: AgentState) -> Dict[str, Any]:
-    """Worker A: produce structured paper analysis with schema validation."""
-    paper = load_paper_text(state.paper_path or str(ROOT / "data" / "paper_extract.txt"))
-    raw = {
+def default_analysis_raw() -> Dict[str, Any]:
+    """Canonical structured analysis for the bundled preprint (unchanged demo path)."""
+    return {
         "paper_id": "rs-10485157",
         "title": "Semantic Tracing in LLM-Based Multi-Agent Systems Using LangChain, LangGraph, and LangSmith for AI Governance",
         "sections_covered": ["abstract", "introduction", "methods", "results", "discussion", "limitations"],
@@ -150,6 +149,48 @@ def analyzer_node(state: AgentState) -> Dict[str, Any]:
             "Possible confound between tracing and evaluation instrumentation",
         ],
     }
+
+
+def heuristic_analysis_raw(paper: str, paper_id: str) -> Dict[str, Any]:
+    """Best-effort structured analysis for user-supplied papers (live app path)."""
+    lines = [ln.strip() for ln in (paper or "").splitlines() if ln.strip()]
+    title = " ".join(lines[:2])[:180] if lines else "Untitled research paper"
+    if len(title) < 5:
+        title = "Untitled research paper"
+    claims: list[str] = []
+    for ln in lines:
+        low = ln.lower()
+        if any(k in low for k in ("we propose", "we show", "we find", "this paper", "results indicate")):
+            claims.append(ln[:240])
+        if len(claims) >= 4:
+            break
+    if not claims:
+        claims = [ln[:240] for ln in lines[1:4]] or ["User-supplied manuscript loaded for review"]
+    return {
+        "paper_id": paper_id[:80] or "user-paper",
+        "title": title,
+        "sections_covered": ["abstract", "introduction", "methods", "results", "discussion", "limitations"],
+        "figures": [{"figure_id": "Fig1", "caption": "Extracted from user manuscript", "supports_claims": True, "clarity": "unknown"}],
+        "tables": [{"table_id": "Table1", "caption": "Extracted from user manuscript", "supports_claims": True, "clarity": "unknown"}],
+        "algorithms": [],
+        "claims": claims[:5],
+        "references_count": paper.lower().count("doi") if paper else 0,
+        "limitations": ["Heuristic analysis of user-supplied text; schema fields filled for graph compatibility"],
+    }
+
+
+def analyzer_node(state: AgentState) -> Dict[str, Any]:
+    """Worker A: produce structured paper analysis with schema validation."""
+    default_paper = (ROOT / "data" / "paper_extract.txt").resolve()
+    paper_path = Path(state.paper_path) if state.paper_path else default_paper
+    paper = load_paper_text(str(paper_path))
+    try:
+        is_default = paper_path.resolve() == default_paper
+    except OSError:
+        is_default = True
+    raw = default_analysis_raw() if is_default else heuristic_analysis_raw(
+        paper, paper_id=paper_path.stem.replace(" ", "-")[:40] or "user-paper"
+    )
 
     # Intentionally allow a broken first draft path via env for demos
     if os.getenv("INJECT_BAD_ANALYSIS", "false").lower() == "true" and not state.schema_retry_used:
@@ -415,26 +456,112 @@ def build_graph():
     return g.compile()
 
 
-def run_system(
+def _memory_messages(user_id: str | None, user_notes: str | None) -> list[Dict[str, str]]:
+    """Load long-term brief + current-session notes. Never breaks the graph."""
+    messages: list[Dict[str, str]] = []
+    if user_id:
+        try:
+            from memory.service import memory_brief_for_user
+
+            brief = memory_brief_for_user(user_id)
+            if brief:
+                messages.append({"role": "system", "content": brief})
+        except Exception:
+            pass
+    notes = (user_notes or "").strip()
+    if notes:
+        messages.append({"role": "user", "content": notes[:4000]})
+    return messages
+
+
+def _prepare_run(
     *,
     target_reviewers: int | None = None,
     max_rounds: int | None = None,
     paper_path: str | None = None,
-) -> AgentState:
+    user_id: str | None = None,
+    user_notes: str | None = None,
+):
     app = build_graph()
     n = target_reviewers if target_reviewers is not None else int(os.getenv("TARGET_REVIEWERS", "20"))
     # Retry ceiling (assignment: stop when round_number >= 5). Default MAX_ROUNDS=5.
     mr = max_rounds if max_rounds is not None else int(os.getenv("MAX_ROUNDS", str(MAX_ROUNDS)))
-
     initial = AgentState(
         paper_path=paper_path or str(ROOT / "data" / "paper_extract.txt"),
         target_reviewers=n,
         max_rounds=mr,
         route="analyze",
+        messages=_memory_messages(user_id, user_notes),
     )
-    # Node visits ≈ coordinator + analyze + 20 reviews + validate + report
-    result = app.invoke(initial, config={"recursion_limit": max(80, n * 4 + 20)})
-    return AgentState.model_validate(result)
+    config = {"recursion_limit": max(80, n * 4 + 20)}
+    return app, initial, config, n
+
+
+def _persist_run(user_id: str | None, session_id: str | None, state: AgentState) -> None:
+    if not user_id:
+        return
+    try:
+        from memory.service import persist_research_run
+
+        persist_research_run(user_id=user_id, session_id=session_id, state=state)
+    except Exception:
+        # Memory is additive; a store failure must not fail the orchestrator.
+        return
+
+
+def run_system(
+    *,
+    target_reviewers: int | None = None,
+    max_rounds: int | None = None,
+    paper_path: str | None = None,
+    user_id: str | None = None,
+    session_id: str | None = None,
+    user_notes: str | None = None,
+    persist_memory: bool = True,
+) -> AgentState:
+    app, initial, config, _n = _prepare_run(
+        target_reviewers=target_reviewers,
+        max_rounds=max_rounds,
+        paper_path=paper_path,
+        user_id=user_id,
+        user_notes=user_notes,
+    )
+    result = app.invoke(initial, config=config)
+    state = AgentState.model_validate(result)
+    if persist_memory:
+        _persist_run(user_id, session_id, state)
+    return state
+
+
+def stream_system(
+    *,
+    target_reviewers: int | None = None,
+    max_rounds: int | None = None,
+    paper_path: str | None = None,
+    user_id: str | None = None,
+    session_id: str | None = None,
+    user_notes: str | None = None,
+    persist_memory: bool = True,
+) -> Iterator[Dict[str, Any]]:
+    """Yield LangGraph node updates for the live UI, then persist long-term memory."""
+    app, initial, config, _n = _prepare_run(
+        target_reviewers=target_reviewers,
+        max_rounds=max_rounds,
+        paper_path=paper_path,
+        user_id=user_id,
+        user_notes=user_notes,
+    )
+    snapshot = initial.model_dump()
+    for event in app.stream(initial, config=config, stream_mode="updates"):
+        yield {"type": "node", "event": event}
+        if isinstance(event, dict):
+            for _node, update in event.items():
+                if isinstance(update, dict):
+                    snapshot.update(update)
+    state = AgentState.model_validate(snapshot)
+    if persist_memory:
+        _persist_run(user_id, session_id, state)
+    yield {"type": "final", "state": state.model_dump()}
 
 
 if __name__ == "__main__":

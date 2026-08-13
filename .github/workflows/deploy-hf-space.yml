@@ -1,0 +1,73 @@
+name: Deploy Live App to Hugging Face Space
+
+# Deploys the Python/FastAPI/LangGraph runtime (not GitHub Pages).
+# Requires repository secret HF_TOKEN with write access to the Space.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require HF_TOKEN
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "Add repository secret HF_TOKEN to deploy the live Python app to Hugging Face Spaces."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install huggingface_hub
+        run: pip install -U "huggingface_hub[cli]"
+      - name: Sync Space files
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          SPACE_ID: ${{ vars.HF_SPACE_ID }}
+        run: |
+          python - <<'PY'
+          import os, shutil, tempfile
+          from pathlib import Path
+          from huggingface_hub import HfApi, create_repo
+
+          space_id = os.environ.get("SPACE_ID") or "Audrey2023uh/academic-research-assistant"
+          token = os.environ["HF_TOKEN"]
+          api = HfApi(token=token)
+          try:
+              create_repo(space_id, repo_type="space", space_sdk="docker", exist_ok=True, token=token)
+          except Exception as exc:
+              print("create_repo note:", exc)
+
+          root = Path(".").resolve()
+          staging = Path(tempfile.mkdtemp())
+          include = [
+              "Dockerfile", "requirements.txt", "webapp.py", "main_system.py", "contract.py",
+              "conftest.py", "README_SPACE.md", ".env.example", "agents", "tools", "memory",
+              "static", "prompts", "data/paper_extract.txt", "data/.gitkeep",
+          ]
+          for item in include:
+              src = root / item
+              if not src.exists():
+                  continue
+              dst = staging / item
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              if src.is_dir():
+                  shutil.copytree(src, dst, dirs_exist_ok=True)
+              else:
+                  shutil.copy2(src, dst)
+          # HF Spaces use README.md for the Space card; keep the GitHub README untouched.
+          shutil.copy2(root / "README_SPACE.md", staging / "README.md")
+          api.upload_folder(
+              folder_path=str(staging),
+              repo_id=space_id,
+              repo_type="space",
+              token=token,
+              commit_message="Deploy Academic Research Assistant live app",
+          )
+          print("Deployed to https://huggingface.co/spaces/" + space_id)
+          PY

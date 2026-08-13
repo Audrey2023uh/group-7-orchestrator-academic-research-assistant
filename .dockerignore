@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+.pytest_cache/
+Final_5minute_team_demo.mp4
+*.mp4
+data/memory.db
+data/memory.db-*
+data/uploads/
+*.db
+.idea/
+.vscode/

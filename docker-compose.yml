@@ -1,0 +1,14 @@
+services:
+  academic-research-assistant:
+    build: .
+    ports:
+      - "7860:7860"
+    environment:
+      USE_MOCK_LLM: "true"
+      MEMORY_DB_PATH: /data/memory.db
+      TARGET_REVIEWERS: "5"
+    volumes:
+      - ara_memory:/data
+
+volumes:
+  ara_memory:

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Academic Research Assistant — Multi-Agent Orchestrator</title>
+  <meta name="description" content="Live interactive Academic Research Assistant with LangGraph multi-agent workflow and persistent research memory." />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #142033;
+      --ink: #edf3ff;
+      --muted: #9fb2cc;
+      --accent: #3d8bfd;
+      --accent2: #56d3a0;
+      --line: #24344d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 500px at 85% -10%, #1c3b6a 0%, transparent 55%),
+        radial-gradient(700px 400px at 0% 20%, #163528 0%, transparent 50%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+    .hero {
+      background: linear-gradient(160deg, rgba(61,139,253,0.16), rgba(20,32,51,0.95));
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 2rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+    h1 { margin: 0 0 0.75rem; font-size: clamp(1.6rem, 3vw, 2.3rem); line-height: 1.2; }
+    p { color: var(--muted); line-height: 1.55; }
+    .cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border-radius: 12px;
+      padding: 0.85rem 1.2rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 10px 30px rgba(61,139,253,0.35);
+      font-size: 1.05rem;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1rem 1.1rem;
+    }
+    .card h3 { margin: 0 0 0.4rem; font-size: 1rem; }
+    .card p { margin: 0; font-size: 0.92rem; }
+    .note {
+      margin-top: 1.5rem;
+      padding: 1rem 1.1rem;
+      border-left: 4px solid var(--accent2);
+      background: rgba(86,211,160,0.08);
+      border-radius: 0 12px 12px 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    code { color: #cfe3ff; }
+    footer { margin-top: 2rem; color: var(--muted); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="badge">Group 7 · Academic Research Assistant · LangGraph</div>
+      <h1>Interactive multi-agent research workflow with persistent memory</h1>
+      <p>
+        This landing page is static documentation hosting. The live product is a Python
+        FastAPI service that runs the coordinator-driven LangGraph graph
+        (analyze → 20 independent reviews → validate → meta-analysis) with
+        short-term session memory and long-term SQLite research memory.
+      </p>
+      <div class="cta">
+        <a id="launchBtn" class="btn btn-primary" href="https://huggingface.co/spaces/Audrey2023uh/academic-research-assistant" target="_blank" rel="noopener">
+          Launch Live App
+        </a>
+        <a class="btn btn-secondary" href="https://github.com/Audrey2023uh/group-7-orchestrator-academic-research-assistant" target="_blank" rel="noopener">
+          View GitHub Repository
+        </a>
+        <a class="btn btn-secondary" href="https://github.com/Audrey2023uh/group-7-orchestrator-academic-research-assistant/blob/main/README.md" target="_blank" rel="noopener">
+          Project README
+        </a>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <h3>Multi-agent runtime</h3>
+          <p>Coordinator + Analyzer + Independent Reviewer × N + Validator + Reporter with six guardrails.</p>
+        </div>
+        <div class="card">
+          <h3>Persistent memory</h3>
+          <p>Server-side SQLite stores sessions, findings, decisions, and agent outputs across restarts.</p>
+        </div>
+        <div class="card">
+          <h3>User controls</h3>
+          <p>View, pin, approve, delete individual items, or clear all memory for the current user.</p>
+        </div>
+      </div>
+      <div class="note">
+        GitHub Pages only hosts this landing experience. Click <strong>Launch Live App</strong>
+        to open the interactive Academic Research Assistant. If the live URL is still warming up,
+        wait a minute and refresh, or run locally with <code>uvicorn webapp:app --port 7860</code>.
+      </div>
+    </section>
+    <footer>
+      Architecture remains unchanged from the original submission. Memory and the live UI are additive layers.
+    </footer>
+  </div>
+  <script>
+    // Optional override via query string: ?app=https://your-deployed-host
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const override = params.get("app");
+      const btn = document.getElementById("launchBtn");
+      const configured = btn.getAttribute("href");
+      if (override) {
+        btn.setAttribute("href", override);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: academic-research-assistant
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: USE_MOCK_LLM
+        value: "true"
+      - key: MEMORY_DB_PATH
+        value: /data/memory.db
+      - key: PORT
+        value: "7860"
+    disk:
+      name: ara-memory
+      mountPath: /data
+      sizeGB: 1

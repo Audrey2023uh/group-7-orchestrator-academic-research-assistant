@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Academic Research Assistant — Live</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div>
+      <h1>Academic Research Assistant</h1>
+      <p class="sub">Coordinator-driven LangGraph workflow · persistent per-user memory</p>
+    </div>
+    <div class="userbox">
+      <span id="userLabel">Loading…</span>
+      <button id="btnClearAll" class="danger" title="Delete all long-term and session memory for this user">Clear all memory</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel">
+      <div class="row">
+        <h2>Sessions</h2>
+        <button id="btnNewSession">New</button>
+      </div>
+      <ul id="sessionList" class="list"></ul>
+      <h2>Long-term memory</h2>
+      <div class="filters">
+        <select id="memKind">
+          <option value="">All kinds</option>
+          <option value="reviewed_paper">Reviewed papers</option>
+          <option value="finding">Findings</option>
+          <option value="decision">Decisions</option>
+          <option value="agent_output">Agent outputs</option>
+          <option value="session_summary">Session summaries</option>
+        </select>
+        <button id="btnRefreshMem">Refresh</button>
+      </div>
+      <ul id="memoryList" class="list"></ul>
+      <form id="pinForm" class="pin">
+        <h3>Pin / approve</h3>
+        <input id="pinTitle" placeholder="Title" required />
+        <textarea id="pinContent" placeholder="Important finding or approved decision" required></textarea>
+        <select id="pinKind">
+          <option value="finding">Finding</option>
+          <option value="decision">Approved decision</option>
+        </select>
+        <button type="submit">Save to long-term memory</button>
+      </form>
+    </aside>
+
+    <section class="panel workspace">
+      <h2>Run multi-agent research</h2>
+      <label>Research question / notes (short-term session memory)
+        <textarea id="question" rows="3" placeholder="What should the coordinator prioritize?"></textarea>
+      </label>
+      <label class="check"><input type="checkbox" id="useBundled" checked /> Use bundled preprint (rs-10485157)</label>
+      <label>Optional paper text (overrides bundled when unchecked)
+        <textarea id="paperText" rows="6" placeholder="Paste abstract/full extract…"></textarea>
+      </label>
+      <div class="controls">
+        <label>Reviewers
+          <input type="number" id="reviewers" min="1" max="20" value="5" />
+        </label>
+        <label>Max rounds
+          <input type="number" id="rounds" min="1" max="8" value="5" />
+        </label>
+        <button id="btnRun" class="primary">Launch workflow</button>
+      </div>
+      <div id="status" class="status">Idle</div>
+      <pre id="liveLog" class="log"></pre>
+      <h3>Conversation (session)</h3>
+      <div id="chat" class="chat"></div>
+      <form id="chatForm" class="chat-form">
+        <input id="chatInput" placeholder="Add a note to this session…" />
+        <button type="submit">Send</button>
+      </form>
+      <h3>Results</h3>
+      <div id="results" class="results"></div>
+    </section>
+  </main>
+
+  <footer>
+    Memory is stored server-side in SQLite, isolated per user cookie. API keys and passwords are redacted and not saved.
+  </footer>
+  <script src="/assets/app.js"></script>
+</body>
+</html>

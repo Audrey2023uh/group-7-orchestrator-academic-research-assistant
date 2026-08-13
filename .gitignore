@@ -20,3 +20,7 @@ outputs/tmp/
 .vscode/
 _instruction_extracts/
 *.pdf
+data/memory.db
+data/memory.db-*
+data/uploads/
+*.db
