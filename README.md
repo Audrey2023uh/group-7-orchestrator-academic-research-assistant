@@ -1,6 +1,6 @@
 # Academic Research Assistant — Multi-Agent Failure Modes & Guardrails
 
-**Group 7 · Single-author submission · Audrey Rah**
+*By Audrey Rah**
 
 ## Project Demonstration
 
