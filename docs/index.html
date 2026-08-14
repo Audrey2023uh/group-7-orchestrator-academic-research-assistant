@@ -111,7 +111,7 @@
         short-term session memory and long-term SQLite research memory.
       </p>
       <div class="cta">
-        <a id="launchBtn" class="btn btn-primary" href="https://huggingface.co/spaces/Audrey2023uh/academic-research-assistant" target="_blank" rel="noopener">
+        <a id="launchBtn" class="btn btn-primary" href="http://127.0.0.1:7860/" target="_blank" rel="noopener">
           Launch Live App
         </a>
         <a class="btn btn-secondary" href="https://github.com/Audrey2023uh/group-7-orchestrator-academic-research-assistant" target="_blank" rel="noopener">
@@ -136,9 +136,12 @@
         </div>
       </div>
       <div class="note">
-        GitHub Pages only hosts this landing experience. Click <strong>Launch Live App</strong>
-        to open the interactive Academic Research Assistant. If the live URL is still warming up,
-        wait a minute and refresh, or run locally with <code>uvicorn webapp:app --port 7860</code>.
+        GitHub Pages is only this landing page. <strong>Launch Live App</strong> opens the
+        interactive FastAPI + LangGraph application at <code>http://127.0.0.1:7860</code>
+        (start it with <code>uvicorn webapp:app --host 127.0.0.1 --port 7860</code>).
+        A hosted Hugging Face Space can be added later with <code>hf auth login</code>
+        or a GitHub secret named <code>HF_TOKEN</code>; that Space URL is not live yet,
+        which is why hugging-face 404 pages appear if you open it directly.
       </div>
     </section>
     <footer>
