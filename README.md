@@ -7,6 +7,7 @@
 **Technical Demonstration (Video):**
 
 https://drive.google.com/file/d/1Pvy0pseP0PAD5JEXifBJK0nBYUnrPXQ9/view?usp=sharing
+https://audrey2023uh.github.io/group-7-orchestrator-academic-research-assistant/
 
 **Technical Demonstration (Video):**
 
